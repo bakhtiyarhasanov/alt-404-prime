@@ -6,6 +6,8 @@
   Password: Alt404Admin!
 */
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'admin@alt404.com') THEN
@@ -31,7 +33,7 @@ BEGIN
       gen_random_uuid(),
       '00000000-0000-0000-0000-000000000000',
       'admin@alt404.com',
-      crypt('Alt404Admin!', gen_salt('bf')),
+      extensions.crypt('Alt404Admin!', extensions.gen_salt('bf')),
       now(),
       'authenticated',
       'authenticated',
@@ -48,7 +50,7 @@ BEGIN
   ELSE
     UPDATE auth.users
     SET
-      encrypted_password = crypt('Alt404Admin!', gen_salt('bf')),
+      encrypted_password = extensions.crypt('Alt404Admin!', extensions.gen_salt('bf')),
       email_confirmed_at = now(),
       updated_at = now()
     WHERE email = 'admin@alt404.com';

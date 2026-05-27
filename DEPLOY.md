@@ -21,12 +21,19 @@ This project is a **Vite + React** static SPA with **Supabase** for auth and som
 
 ### Run migrations
 
-From the project root (with [Supabase CLI](https://supabase.com/docs/guides/cli) installed):
+From the project root. This repo includes the CLI as a dev dependency — use **`npx`** or **`npm run`** (global `supabase` is not required):
 
 ```bash
-supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
+cd /path/to/alt404-main
+npm install
+npm run supabase:login
+npm run supabase:link
+npm run supabase:push
 ```
+
+(`supabase:link` is already set to project ref `ezabzqsmyllizyttgavv`.)
+
+If you prefer a global CLI: install [Homebrew](https://brew.sh), then `brew install supabase/tap/supabase`.
 
 Or apply SQL files manually in the Supabase SQL editor, in order under `supabase/migrations/`.
 
@@ -42,7 +49,7 @@ In Supabase → **Authentication** → **URL configuration**:
 | Variable | Where to find it |
 |----------|------------------|
 | `VITE_SUPABASE_URL` | Supabase → Settings → API → Project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase → Settings → API → `anon` `public` key |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase → Settings → API → Publishable key (`sb_publishable_…`) |
 
 Never commit `.env` to git. Use Vercel/Netlify environment variables instead.
 
@@ -60,7 +67,7 @@ Never commit `.env` to git. Use Vercel/Netlify environment variables instead.
    - **Install Command**: `npm install`
 4. **Environment Variables** → add:
    - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
 5. Deploy.
 
 `vercel.json` in the repo already configures SPA routing (all paths → `index.html`).
@@ -81,7 +88,7 @@ Update Supabase auth URLs to match the live domain.
    - **Publish directory**: `dist`
 3. **Site configuration** → **Environment variables**:
    - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
 4. Deploy.
 
 `public/_redirects` is copied into `dist` on build and enables client-side routing on Netlify.
@@ -129,7 +136,7 @@ For a production news site, migrate articles (and related config) to Supabase so
 
 ## 7. Checklist before go-live
 
-- [ ] `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set on host
+- [ ] `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` set on host
 - [ ] Supabase migrations applied
 - [ ] Supabase Auth Site URL + Redirect URLs match live domain
 - [ ] `/admin` login works on production URL
@@ -149,7 +156,7 @@ For a production news site, migrate articles (and related config) to Supabase so
 ### Blank page after deploy
 
 - Check build logs for errors.
-- Confirm env vars are set and names are exactly `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Vite only exposes `VITE_*` at build time).
+- Confirm env vars are set and names are exactly `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (Vite only exposes `VITE_*` at build time). Legacy `VITE_SUPABASE_ANON_KEY` still works if set instead.
 - Redeploy after adding or changing env vars.
 
 ### Admin login fails
