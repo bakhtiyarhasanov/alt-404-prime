@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Clock } from 'lucide-react';
 import type { Article } from '../lib/supabase';
 import { formatDate } from '../lib/utils';
 import { useApp } from '../lib/appContext';
@@ -105,9 +104,6 @@ export default function ArticleCard({ article, variant = 'default' }: Props) {
           <p className="font-sans text-xs text-text-secondary line-clamp-2 leading-relaxed mb-2">{article.excerpt}</p>
           <div className="flex items-center gap-3">
             <span className="font-mono text-[10px] text-text-muted">{formatDate(article.created_at)}</span>
-            <span className="flex items-center gap-1 font-mono text-[10px] text-text-muted">
-              <Clock size={10} />{article.reading_time} dəq
-            </span>
           </div>
         </div>
       </Link>
@@ -127,9 +123,6 @@ export default function ArticleCard({ article, variant = 'default' }: Props) {
       <div className="p-5">
         <div className="flex items-center justify-between mb-3">
           <span className="category-badge">{cat}</span>
-          <span className="flex items-center gap-1 text-text-muted font-mono text-[10px]">
-            <Clock size={10} />{article.reading_time} dəq
-          </span>
         </div>
         <h3 className="font-mono text-[14px] font-bold text-text-primary leading-snug mb-2 group-hover:text-text-primary transition-colors line-clamp-2">
           {article.title}

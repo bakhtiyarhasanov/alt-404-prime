@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { TrendingUp, ChevronRight, Clock, Calendar, ArrowUpRight, Play, X, ChevronDown } from 'lucide-react';
+import { TrendingUp, ChevronRight, Calendar, ArrowUpRight, Play, X, ChevronDown } from 'lucide-react';
 import ArticleCard from '../components/ArticleCard';
 import AdZone from '../components/AdZone';
 import { useApp } from '../lib/appContext';
@@ -248,10 +248,6 @@ export default function Home() {
                   <span className="flex items-center gap-1.5 font-mono text-[11px] text-white/50">
                     <Calendar size={10} strokeWidth={1.5} />
                     {formatDate(heroArticle.created_at)}
-                  </span>
-                  <span className="flex items-center gap-1.5 font-mono text-[11px] text-white/50">
-                    <Clock size={10} strokeWidth={1.5} />
-                    {heroArticle.reading_time} dəq
                   </span>
                 </div>
 

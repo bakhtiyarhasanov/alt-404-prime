@@ -1,10 +1,12 @@
+const AZ_MONTHS = [
+  'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
+  'iyul', 'avqust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr',
+];
+
 export function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
-  return new Intl.DateTimeFormat('az-AZ', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getDate()} ${AZ_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 export function slugify(text: string): string {

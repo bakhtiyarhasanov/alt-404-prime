@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Clock, Calendar, ArrowLeft, Copy, Check } from 'lucide-react';
+import { Calendar, ArrowLeft, Copy, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useApp, useAd } from '../lib/appContext';
 import { formatDate } from '../lib/utils';
@@ -194,10 +194,6 @@ export default function ArticlePage() {
               <div className="flex items-center gap-1.5 font-mono text-[11px] text-white/45">
                 <Calendar size={11} strokeWidth={1.5} />
                 {formatDate(article.created_at)}
-              </div>
-              <div className="flex items-center gap-1.5 font-mono text-[11px] text-white/45">
-                <Clock size={11} strokeWidth={1.5} />
-                {article.reading_time} dəqiqəlik oxu
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {article.tags.slice(0, 4).map((tag) => (
