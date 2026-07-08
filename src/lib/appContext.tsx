@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { supabase, isSupabaseConfigured } from './supabase';
 import type { Article, ArticleVersion } from './supabase';
 import { mockArticles } from '../data/mockArticles';
 import type { AdZone } from './adContext';
@@ -61,177 +62,374 @@ type AppState = {
 };
 
 type AppContextType = AppState & {
-  setArticles: (articles: Article[]) => void;
-  addArticle: (article: Article) => void;
-  updateArticle: (id: string, patch: Partial<Article>) => void;
-  saveArticleVersion: (id: string, version: ArticleVersion) => void;
-  revertToVersion: (id: string, version: ArticleVersion) => void;
-  deleteArticle: (id: string) => void;
-  incrementViews: (id: string) => void;
-  updateAd: (id: string, patch: Partial<AdZone>) => void;
-  addMediaItem: (item: MediaItem) => void;
-  updateMediaItem: (id: string, patch: Partial<MediaItem>) => void;
-  deleteMediaItem: (id: string) => void;
+  loading: boolean;
+  usingFallbackArticles: boolean;
+  refresh: () => Promise<void>;
+  migrateLocalContent: () => Promise<{ articles: number; ads: number; categories: number; media: number }>;
 
-  upsertCategory: (category: CategoryConfig) => void;
-  updateCategory: (slug: string, patch: Partial<CategoryConfig>) => void;
-  deleteCategory: (slug: string) => void;
+  setArticles: (articles: Article[]) => void;
+  addArticle: (article: Article) => Promise<void>;
+  updateArticle: (id: string, patch: Partial<Article>) => Promise<void>;
+  saveArticleVersion: (id: string, version: ArticleVersion) => Promise<void>;
+  revertToVersion: (id: string, version: ArticleVersion) => Promise<void>;
+  deleteArticle: (id: string) => Promise<void>;
+  incrementViews: (id: string) => void;
+  updateAd: (id: string, patch: Partial<AdZone>) => Promise<void>;
+  addMediaItem: (item: MediaItem) => Promise<void>;
+  updateMediaItem: (id: string, patch: Partial<MediaItem>) => Promise<void>;
+  deleteMediaItem: (id: string) => Promise<void>;
+
+  upsertCategory: (category: CategoryConfig) => Promise<void>;
+  updateCategory: (slug: string, patch: Partial<CategoryConfig>) => Promise<void>;
+  deleteCategory: (slug: string) => Promise<void>;
 };
 
 const AppContext = createContext<AppContextType | null>(null);
 
-function ensureViews(articles: Article[]): Article[] {
-  return articles.map((a) => ({
-    ...a,
-    views: a.views ?? 0,
-    versions: a.versions ?? [],
-    category: a.category === 'elm-sosial' ? 'elm-gundem' : a.category,
-  }));
+/* ────────────────────────────── mappers ────────────────────────────── */
+
+type ArticleRow = Omit<Article, 'versions'> & { versions: ArticleVersion[] | null };
+
+function rowToArticle(r: ArticleRow): Article {
+  return {
+    ...r,
+    tags: r.tags ?? [],
+    views: r.views ?? 0,
+    versions: r.versions ?? [],
+    category: r.category === 'elm-sosial' ? 'elm-gundem' : r.category,
+  };
 }
 
-function loadState(): AppState {
-  try {
-    const raw = localStorage.getItem('alt404_state');
-    if (raw) {
-      const parsed = JSON.parse(raw) as AppState;
-      return {
-        articles: ensureViews(parsed.articles?.length ? parsed.articles : mockArticles),
-        ads: parsed.ads?.length ? parsed.ads : DEFAULT_ADS,
-        mediaLibrary: parsed.mediaLibrary || [],
-        categories: parsed.categories?.length ? parsed.categories : DEFAULT_CATEGORIES,
-      };
-    }
-  } catch {
-    // ignore
-  }
-  return { articles: ensureViews(mockArticles), ads: DEFAULT_ADS, mediaLibrary: [], categories: DEFAULT_CATEGORIES };
+// Only the writable columns of the articles table (no id / timestamps).
+function articleToRow(a: Partial<Article>) {
+  const row: Record<string, unknown> = {};
+  const keys: (keyof Article)[] = [
+    'title', 'slug', 'excerpt', 'content', 'category', 'image_url',
+    'tags', 'featured', 'published', 'reading_time', 'views', 'versions',
+  ];
+  for (const k of keys) if (a[k] !== undefined) row[k] = a[k];
+  return row;
 }
+
+type AdRow = {
+  id: string; label: string; enabled: boolean;
+  image_url: string; link_url: string; width: number; height: number;
+};
+
+function rowToAd(r: AdRow): AdZone {
+  return {
+    id: r.id,
+    label: r.label,
+    enabled: r.enabled,
+    imageUrl: r.image_url,
+    linkUrl: r.link_url,
+    width: r.width,
+    height: r.height,
+  };
+}
+
+function adToRow(a: Partial<AdZone>) {
+  const row: Record<string, unknown> = {};
+  if (a.id !== undefined) row.id = a.id;
+  if (a.label !== undefined) row.label = a.label;
+  if (a.enabled !== undefined) row.enabled = a.enabled;
+  if (a.imageUrl !== undefined) row.image_url = a.imageUrl;
+  if (a.linkUrl !== undefined) row.link_url = a.linkUrl;
+  if (a.width !== undefined) row.width = a.width;
+  if (a.height !== undefined) row.height = a.height;
+  return row;
+}
+
+type CategoryRow = {
+  slug: string; label: string; show_on_site: boolean; sort_order: number;
+  parent_slug: string | null; meta_title: string | null;
+  meta_description: string | null; curated_tags: string[] | null;
+};
+
+function rowToCategory(r: CategoryRow): CategoryConfig {
+  return {
+    slug: r.slug,
+    label: r.label,
+    showOnSite: r.show_on_site,
+    sortOrder: r.sort_order,
+    parentSlug: r.parent_slug ?? undefined,
+    metaTitle: r.meta_title ?? undefined,
+    metaDescription: r.meta_description ?? undefined,
+    curatedTags: r.curated_tags ?? [],
+  };
+}
+
+function categoryToRow(c: Partial<CategoryConfig>) {
+  const row: Record<string, unknown> = {};
+  if (c.slug !== undefined) row.slug = c.slug;
+  if (c.label !== undefined) row.label = c.label;
+  if (c.showOnSite !== undefined) row.show_on_site = c.showOnSite;
+  if (c.sortOrder !== undefined) row.sort_order = c.sortOrder;
+  if (c.parentSlug !== undefined) row.parent_slug = c.parentSlug;
+  if (c.metaTitle !== undefined) row.meta_title = c.metaTitle;
+  if (c.metaDescription !== undefined) row.meta_description = c.metaDescription;
+  if (c.curatedTags !== undefined) row.curated_tags = c.curatedTags;
+  return row;
+}
+
+type MediaRow = { id: string; url: string; alt_text: string; title: string; file_name: string; created_at: string };
+
+function rowToMedia(r: MediaRow): MediaItem {
+  return {
+    id: r.id,
+    url: r.url,
+    altText: r.alt_text ?? '',
+    title: r.title ?? '',
+    fileName: r.file_name ?? '',
+    createdAt: r.created_at,
+  };
+}
+
+function mediaToRow(m: Partial<MediaItem>) {
+  const row: Record<string, unknown> = {};
+  if (m.url !== undefined) row.url = m.url;
+  if (m.altText !== undefined) row.alt_text = m.altText;
+  if (m.title !== undefined) row.title = m.title;
+  if (m.fileName !== undefined) row.file_name = m.fileName;
+  return row;
+}
+
+/* ────────────────────────────── provider ────────────────────────────── */
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(loadState);
+  const [articles, setArticlesState] = useState<Article[]>(mockArticles);
+  const [ads, setAds] = useState<AdZone[]>(DEFAULT_ADS);
+  const [categories, setCategories] = useState<CategoryConfig[]>(DEFAULT_CATEGORIES);
+  const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [usingFallbackArticles, setUsingFallbackArticles] = useState(true);
+  const didInit = useRef(false);
 
-  const persist = useCallback((next: AppState) => {
-    try {
-      const serialized = JSON.stringify(next);
-      localStorage.setItem('alt404_state', serialized);
-      // Broadcast to same-tab listeners (storage event only fires in other tabs)
-      window.dispatchEvent(new CustomEvent('alt404_state_update', { detail: next }));
-    } catch {
-      // localStorage quota exceeded — keep in-memory state anyway
-      console.warn('alt404_state could not be persisted (likely storage quota).');
+  const refresh = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
     }
-    return next;
-  }, []);
+    try {
+      const [artRes, adRes, catRes, medRes] = await Promise.all([
+        supabase.from('articles').select('*').order('created_at', { ascending: false }),
+        supabase.from('ads').select('*'),
+        supabase.from('categories').select('*').order('sort_order', { ascending: true }),
+        supabase.from('media_library').select('*').order('created_at', { ascending: false }),
+      ]);
 
-  const updateState = useCallback((updater: (prev: AppState) => AppState) => {
-    setState((prev) => persist(updater(prev)));
-  }, [persist]);
-
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === 'alt404_state' && e.newValue) {
-        try {
-          setState(JSON.parse(e.newValue));
-        } catch {
-          // ignore
+      if (!artRes.error && artRes.data) {
+        if (artRes.data.length > 0) {
+          setArticlesState((artRes.data as ArticleRow[]).map(rowToArticle));
+          setUsingFallbackArticles(false);
+        } else {
+          setArticlesState(mockArticles);
+          setUsingFallbackArticles(true);
         }
       }
-    };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
+      if (!adRes.error && adRes.data && adRes.data.length > 0) {
+        setAds((adRes.data as AdRow[]).map(rowToAd));
+      }
+      if (!catRes.error && catRes.data && catRes.data.length > 0) {
+        setCategories((catRes.data as CategoryRow[]).map(rowToCategory));
+      }
+      if (!medRes.error && medRes.data) {
+        setMediaLibrary((medRes.data as MediaRow[]).map(rowToMedia));
+      }
+    } catch (e) {
+      console.warn('[alt404] Failed to load content from Supabase.', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const setArticles = (articles: Article[]) => updateState((prev) => ({ ...prev, articles }));
+  useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
+    refresh();
+  }, [refresh]);
 
-  const addArticle = (article: Article) =>
-    updateState((prev) => ({ ...prev, articles: [{ ...article, views: 0, versions: [] }, ...prev.articles] }));
+  // Keep content fresh when the tab regains focus (so admin edits show up
+  // on other devices without a manual reload).
+  useEffect(() => {
+    const onFocus = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onFocus);
+    return () => document.removeEventListener('visibilitychange', onFocus);
+  }, [refresh]);
 
-  const updateArticle = (id: string, patch: Partial<Article>) =>
-    updateState((prev) => ({
-      ...prev,
-      articles: prev.articles.map((a) =>
-        a.id === id ? { ...a, ...patch, updated_at: new Date().toISOString() } : a
-      ),
-    }));
+  /* ── articles ── */
 
-  const saveArticleVersion = (id: string, version: ArticleVersion) =>
-    updateState((prev) => ({
-      ...prev,
-      articles: prev.articles.map((a) => {
-        if (a.id !== id) return a;
-        const existing = a.versions || [];
-        // Keep last 10 versions
-        const versions = [version, ...existing].slice(0, 10);
-        return { ...a, versions };
-      }),
-    }));
+  const setArticles = (next: Article[]) => setArticlesState(next);
 
-  const revertToVersion = (id: string, version: ArticleVersion) =>
-    updateState((prev) => ({
-      ...prev,
-      articles: prev.articles.map((a) =>
-        a.id === id
-          ? { ...a, title: version.title, excerpt: version.excerpt, content: version.content, updated_at: new Date().toISOString() }
-          : a
-      ),
-    }));
-
-  const deleteArticle = (id: string) =>
-    updateState((prev) => ({ ...prev, articles: prev.articles.filter((a) => a.id !== id) }));
-
-  const incrementViews = (id: string) =>
-    updateState((prev) => ({
-      ...prev,
-      articles: prev.articles.map((a) =>
-        a.id === id ? { ...a, views: (a.views || 0) + 1 } : a
-      ),
-    }));
-
-  const updateAd = (id: string, patch: Partial<AdZone>) =>
-    updateState((prev) => ({
-      ...prev,
-      ads: prev.ads.map((ad) => (ad.id === id ? { ...ad, ...patch } : ad)),
-    }));
-
-  const addMediaItem = (item: MediaItem) =>
-    updateState((prev) => ({ ...prev, mediaLibrary: [item, ...prev.mediaLibrary] }));
-
-  const updateMediaItem = (id: string, patch: Partial<MediaItem>) =>
-    updateState((prev) => ({
-      ...prev,
-      mediaLibrary: prev.mediaLibrary.map((m) => (m.id === id ? { ...m, ...patch } : m)),
-    }));
-
-  const deleteMediaItem = (id: string) =>
-    updateState((prev) => ({ ...prev, mediaLibrary: prev.mediaLibrary.filter((m) => m.id !== id) }));
-
-  const upsertCategory = (category: CategoryConfig) => {
-    updateState((prev) => ({
-      ...prev,
-      categories: prev.categories.some((c) => c.slug === category.slug)
-        ? prev.categories.map((c) => (c.slug === category.slug ? { ...c, ...category } : c))
-        : [...prev.categories, category],
-    }));
+  const addArticle = async (article: Article) => {
+    const row = articleToRow({ ...article, views: 0, versions: [] });
+    const { data, error } = await supabase.from('articles').insert(row).select().single();
+    if (error) {
+      console.error('[alt404] addArticle failed:', error.message);
+      throw error;
+    }
+    const created = rowToArticle(data as ArticleRow);
+    setArticlesState((prev) => [created, ...prev.filter((a) => a.id !== created.id)]);
+    setUsingFallbackArticles(false);
   };
 
-  const updateCategory = (slug: string, patch: Partial<CategoryConfig>) => {
-    updateState((prev) => ({
-      ...prev,
-      categories: prev.categories.map((c) => (c.slug === slug ? { ...c, ...patch, slug: c.slug } : c)),
-    }));
+  const updateArticle = async (id: string, patch: Partial<Article>) => {
+    const row = { ...articleToRow(patch), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('articles').update(row).eq('id', id).select().single();
+    if (error) {
+      console.error('[alt404] updateArticle failed:', error.message);
+      throw error;
+    }
+    const updated = rowToArticle(data as ArticleRow);
+    setArticlesState((prev) => prev.map((a) => (a.id === id ? updated : a)));
   };
 
-  const deleteCategory = (slug: string) => {
-    updateState((prev) => ({
-      ...prev,
-      categories: prev.categories.filter((c) => c.slug !== slug),
-    }));
+  const saveArticleVersion = async (id: string, version: ArticleVersion) => {
+    const current = articles.find((a) => a.id === id);
+    const versions = [version, ...(current?.versions || [])].slice(0, 10);
+    setArticlesState((prev) => prev.map((a) => (a.id === id ? { ...a, versions } : a)));
+    const { error } = await supabase.from('articles').update({ versions }).eq('id', id);
+    if (error) console.warn('[alt404] saveArticleVersion failed:', error.message);
+  };
+
+  const revertToVersion = async (id: string, version: ArticleVersion) => {
+    await updateArticle(id, {
+      title: version.title,
+      excerpt: version.excerpt,
+      content: version.content,
+    });
+  };
+
+  const deleteArticle = async (id: string) => {
+    const { error } = await supabase.from('articles').delete().eq('id', id);
+    if (error) {
+      console.error('[alt404] deleteArticle failed:', error.message);
+      throw error;
+    }
+    setArticlesState((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const incrementViews = (id: string) => {
+    setArticlesState((prev) => prev.map((a) => (a.id === id ? { ...a, views: (a.views || 0) + 1 } : a)));
+    supabase.rpc('increment_article_views', { article_id: id }).then(({ error }) => {
+      if (error) console.warn('[alt404] increment views failed:', error.message);
+    });
+  };
+
+  /* ── ads ── */
+
+  const updateAd = async (id: string, patch: Partial<AdZone>) => {
+    setAds((prev) => prev.map((ad) => (ad.id === id ? { ...ad, ...patch } : ad)));
+    const { error } = await supabase
+      .from('ads')
+      .upsert({ id, ...adToRow(patch), updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) console.error('[alt404] updateAd failed:', error.message);
+  };
+
+  /* ── media ── */
+
+  const addMediaItem = async (item: MediaItem) => {
+    const { data, error } = await supabase.from('media_library').insert(mediaToRow(item)).select().single();
+    if (error) {
+      console.error('[alt404] addMediaItem failed:', error.message);
+      throw error;
+    }
+    setMediaLibrary((prev) => [rowToMedia(data as MediaRow), ...prev]);
+  };
+
+  const updateMediaItem = async (id: string, patch: Partial<MediaItem>) => {
+    setMediaLibrary((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+    const { error } = await supabase.from('media_library').update(mediaToRow(patch)).eq('id', id);
+    if (error) console.error('[alt404] updateMediaItem failed:', error.message);
+  };
+
+  const deleteMediaItem = async (id: string) => {
+    setMediaLibrary((prev) => prev.filter((m) => m.id !== id));
+    const { error } = await supabase.from('media_library').delete().eq('id', id);
+    if (error) console.error('[alt404] deleteMediaItem failed:', error.message);
+  };
+
+  /* ── categories ── */
+
+  const upsertCategory = async (category: CategoryConfig) => {
+    setCategories((prev) =>
+      prev.some((c) => c.slug === category.slug)
+        ? prev.map((c) => (c.slug === category.slug ? { ...c, ...category } : c))
+        : [...prev, category]
+    );
+    const { error } = await supabase.from('categories').upsert(categoryToRow(category), { onConflict: 'slug' });
+    if (error) console.error('[alt404] upsertCategory failed:', error.message);
+  };
+
+  const updateCategory = async (slug: string, patch: Partial<CategoryConfig>) => {
+    setCategories((prev) => prev.map((c) => (c.slug === slug ? { ...c, ...patch, slug: c.slug } : c)));
+    const { error } = await supabase.from('categories').update(categoryToRow(patch)).eq('slug', slug);
+    if (error) console.error('[alt404] updateCategory failed:', error.message);
+  };
+
+  const deleteCategory = async (slug: string) => {
+    setCategories((prev) => prev.filter((c) => c.slug !== slug));
+    const { error } = await supabase.from('categories').delete().eq('slug', slug);
+    if (error) console.error('[alt404] deleteCategory failed:', error.message);
+  };
+
+  /* ── one-time migration: localStorage → Supabase ── */
+
+  const migrateLocalContent = async () => {
+    const result = { articles: 0, ads: 0, categories: 0, media: 0 };
+    let parsed: Partial<AppState> | null = null;
+    try {
+      const raw = localStorage.getItem('alt404_state');
+      if (raw) parsed = JSON.parse(raw) as Partial<AppState>;
+    } catch {
+      parsed = null;
+    }
+    if (!parsed) return result;
+
+    if (parsed.categories?.length) {
+      const rows = parsed.categories.map((c) => categoryToRow(c));
+      const { error } = await supabase.from('categories').upsert(rows, { onConflict: 'slug' });
+      if (!error) result.categories = rows.length;
+      else console.error('[alt404] migrate categories failed:', error.message);
+    }
+
+    if (parsed.ads?.length) {
+      const rows = parsed.ads.map((a) => ({ id: a.id, ...adToRow(a) }));
+      const { error } = await supabase.from('ads').upsert(rows, { onConflict: 'id' });
+      if (!error) result.ads = rows.length;
+      else console.error('[alt404] migrate ads failed:', error.message);
+    }
+
+    if (parsed.articles?.length) {
+      // Omit client ids (localStorage used non-uuid ids); dedupe on slug.
+      const rows = parsed.articles.map((a) => articleToRow(a));
+      const { error } = await supabase.from('articles').upsert(rows, { onConflict: 'slug' });
+      if (!error) result.articles = rows.length;
+      else console.error('[alt404] migrate articles failed:', error.message);
+    }
+
+    if (parsed.mediaLibrary?.length) {
+      const rows = parsed.mediaLibrary.map((m) => mediaToRow(m));
+      const { error } = await supabase.from('media_library').insert(rows);
+      if (!error) result.media = rows.length;
+      else console.error('[alt404] migrate media failed:', error.message);
+    }
+
+    await refresh();
+    return result;
   };
 
   return (
     <AppContext.Provider
       value={{
-        ...state,
+        articles,
+        ads,
+        categories,
+        mediaLibrary,
+        loading,
+        usingFallbackArticles,
+        refresh,
+        migrateLocalContent,
         setArticles,
         addArticle,
         updateArticle,

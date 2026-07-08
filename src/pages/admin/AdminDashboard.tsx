@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, CreditCard as Edit2, Trash2, Eye, LogOut, Search, Filter, Megaphone, LayoutDashboard, Images, BarChart2, MessageSquare, PlaySquare } from 'lucide-react';
+import { Plus, CreditCard as Edit2, Trash2, Eye, LogOut, Search, Filter, Megaphone, LayoutDashboard, Images, BarChart2, MessageSquare, PlaySquare, UploadCloud } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { formatDate } from '../../lib/utils';
 import ArticleEditor from './ArticleEditor';
@@ -18,17 +18,34 @@ interface Props {
 }
 
 export default function AdminDashboard({ onLogout }: Props) {
-  const { articles, addArticle, updateArticle, deleteArticle, categories } = useApp();
+  const { articles, addArticle, updateArticle, deleteArticle, categories, migrateLocalContent } = useApp();
   const [tab, setTab] = useState<Tab>('articles');
   const [editing, setEditing] = useState<Partial<Article> | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
+  const hasLocalContent = typeof localStorage !== 'undefined' && !!localStorage.getItem('alt404_state');
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     onLogout();
+  };
+
+  const handleSync = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    setSyncMsg('');
+    try {
+      const r = await migrateLocalContent();
+      setSyncMsg(`Köçürüldü: ${r.articles} xəbər, ${r.ads} reklam, ${r.categories} bölmə, ${r.media} media.`);
+    } catch {
+      setSyncMsg('Köçürmə zamanı xəta baş verdi. Konsolu yoxlayın.');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const filtered = articles.filter((a) => {
@@ -38,34 +55,43 @@ export default function AdminDashboard({ onLogout }: Props) {
   });
 
   const handleSave = async (data: Partial<Article>) => {
-    if (isNew) {
-      const newArticle: Article = {
-        id: `art_${Date.now()}`,
-        title: data.title || '',
-        slug: data.slug || '',
-        excerpt: data.excerpt || '',
-        content: data.content || '',
-        category: data.category || 'texnologiya',
-        image_url: data.image_url || '',
-        tags: data.tags || [],
-        featured: data.featured || false,
-        published: data.published !== false,
-        views: 0,
-        versions: [],
-        reading_time: data.reading_time || 3,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      addArticle(newArticle);
-    } else if (editing?.id) {
-      updateArticle(editing.id, data);
+    try {
+      if (isNew) {
+        const newArticle: Article = {
+          id: `art_${Date.now()}`,
+          title: data.title || '',
+          slug: data.slug || '',
+          excerpt: data.excerpt || '',
+          content: data.content || '',
+          category: data.category || 'texnologiya',
+          image_url: data.image_url || '',
+          tags: data.tags || [],
+          featured: data.featured || false,
+          published: data.published !== false,
+          views: 0,
+          versions: [],
+          reading_time: data.reading_time || 3,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        await addArticle(newArticle);
+      } else if (editing?.id) {
+        await updateArticle(editing.id, data);
+      }
+      setEditing(null);
+      setIsNew(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'naməlum xəta';
+      alert(`Xəbər saxlanmadı: ${msg}\n\nAdmin kimi daxil olduğunuzdan və Supabase migration-larının tətbiq olunduğundan əmin olun.`);
     }
-    setEditing(null);
-    setIsNew(false);
   };
 
-  const handleDelete = (id: string) => {
-    deleteArticle(id);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteArticle(id);
+    } catch {
+      /* handled via console */
+    }
     setDeleteId(null);
   };
 
@@ -169,6 +195,17 @@ export default function AdminDashboard({ onLogout }: Props) {
                   ))}
                 </select>
               </div>
+              {hasLocalContent && (
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  title="Bu brauzerdə saxlanan köhnə məzmunu (xəbər, reklam, bölmə) serverə köçür ki, hamı görsün"
+                  className="btn-ghost flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+                >
+                  <UploadCloud size={14} />
+                  {syncing ? 'Köçürülür...' : 'Serverə köçür'}
+                </button>
+              )}
               <button
                 onClick={() => { setIsNew(true); setEditing({}); }}
                 className="btn-primary flex items-center gap-2 whitespace-nowrap"
@@ -177,6 +214,12 @@ export default function AdminDashboard({ onLogout }: Props) {
                 Yeni Xəbər
               </button>
             </div>
+
+            {syncMsg && (
+              <p className="mb-4 font-mono text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                {syncMsg}
+              </p>
+            )}
 
             <div className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
               <div className="overflow-x-auto">

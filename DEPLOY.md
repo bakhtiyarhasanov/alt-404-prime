@@ -114,23 +114,35 @@ Open the URL shown (usually `http://localhost:4173`) and test navigation, admin 
 
 ---
 
-## 6. Important: content storage today
+## 6. Content storage (shared via Supabase)
 
-Currently, **articles, ads, and categories** are stored in the browser **`localStorage`** (`alt404_state`), not in Supabase for the public site.
+All admin-managed content is stored in **Supabase**, so every visitor (incognito,
+other devices, other accounts) sees the same content.
 
 | Feature | Storage |
 |---------|---------|
-| Articles, ads, categories (public feed) | `localStorage` per browser |
-| Admin auth | Supabase |
+| Articles | Supabase (`articles`) |
+| Ads | Supabase (`ads`) |
+| Categories / sections | Supabase (`categories`) |
+| Media library | Supabase (`media_library`) |
+| Admin auth | Supabase (`auth.users` + `admin_users`) |
 | Contact form | Supabase (`contact_submissions`) |
 | Home videos | Supabase (`home_videos`) |
 
-**After deploy:**
+The app reads content from Supabase on load and again when the tab regains focus.
+Admin writes (create/edit/delete) go straight to Supabase.
 
-- Visitors each see default/mock content unless that browser has local data.
-- Admin edits on one device do **not** sync to all users.
+### Migrating older localStorage content
 
-For a production news site, migrate articles (and related config) to Supabase so all users see the same content. Migrations under `supabase/migrations/` already include article schema.
+If content was created before this change, it lives in that browser's
+`localStorage` (`alt404_state`). To publish it for everyone:
+
+1. Log in to `/admin` on the browser that has the content.
+2. In the **Xəbərlər** tab click **"Serverə köçür"** (appears only when local
+   content exists). This upserts your articles/ads/categories/media into Supabase.
+
+If the `articles` table is empty, the site shows built-in demo articles as a
+placeholder until the first real article is added.
 
 ---
 
@@ -142,7 +154,7 @@ For a production news site, migrate articles (and related config) to Supabase so
 - [ ] `/admin` login works on production URL
 - [ ] Direct links work (e.g. `/texnologiya/some-slug`) — refresh page, no 404
 - [ ] Contact form submits successfully
-- [ ] Plan article migration off `localStorage` if you need shared content
+- [ ] Admin can create an article that shows up in incognito / other devices
 
 ---
 
