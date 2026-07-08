@@ -20,9 +20,10 @@ export default {
         'text-muted':    '#9b9b93',
       },
       fontFamily: {
-        mono:  ['JetBrains Mono', 'ui-monospace', 'monospace'],
-        sans:  ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Lora', 'Georgia', 'serif'],
+        mono:  ['Tomorrow', 'system-ui', 'sans-serif'],
+        sans:  ['Tomorrow', 'system-ui', 'sans-serif'],
+        serif: ['Tomorrow', 'system-ui', 'sans-serif'],
+        tomorrow: ['Tomorrow', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         '2xl': '16px',

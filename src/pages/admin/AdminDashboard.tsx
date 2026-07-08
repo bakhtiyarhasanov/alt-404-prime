@@ -118,8 +118,8 @@ export default function AdminDashboard({ onLogout }: Props) {
       <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-border px-6 h-14 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <svg width="72" height="24" viewBox="0 0 72 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <text x="0" y="19" fontFamily="JetBrains Mono, monospace" fontSize="17" fontWeight="700" fill="#111111" letterSpacing="-0.5">alt</text>
-            <text x="28" y="19" fontFamily="JetBrains Mono, monospace" fontSize="17" fontWeight="700" fill="#FCDB56" letterSpacing="-0.5">404</text>
+            <text x="0" y="19" fontFamily="Tomorrow, system-ui, sans-serif" fontSize="17" fontWeight="700" fill="#111111" letterSpacing="-0.5">alt</text>
+            <text x="28" y="19" fontFamily="Tomorrow, system-ui, sans-serif" fontSize="17" fontWeight="700" fill="#FCDB56" letterSpacing="-0.5">404</text>
           </svg>
           <span className="font-mono text-xs text-text-muted border-l border-border pl-3">Admin</span>
         </div>

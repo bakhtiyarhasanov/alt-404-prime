@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tomorrow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -17,9 +17,15 @@
   body {
     background-color: #f5f5f0;
     color: #111111;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Tomorrow', system-ui, sans-serif;
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Tomorrow', system-ui, sans-serif;
+    font-weight: 700;
   }
 
   /* Subtle tactile dot-matrix — barely visible */
@@ -41,11 +47,11 @@
   ::-webkit-scrollbar-thumb:hover { background: #aaa; }
 
   .font-mono {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    letter-spacing: -0.03em;
+    font-family: 'Tomorrow', system-ui, sans-serif;
+    letter-spacing: -0.01em;
   }
   .font-serif {
-    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+    font-family: 'Tomorrow', system-ui, sans-serif;
   }
 }
 
@@ -122,7 +128,7 @@
     border-radius: 99px;
     font-size: 10.5px;
     font-weight: 500;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     letter-spacing: 0.01em;
     border: 1px solid rgba(0,0,0,0.1);
     color: #777;
@@ -150,7 +156,7 @@
     border-radius: 6px;
     font-size: 9.5px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     background: rgba(252, 219, 86, 0.18);
@@ -166,7 +172,7 @@
     border-radius: 6px;
     font-size: 9.5px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     background: rgba(252, 219, 86, 0.2);
@@ -178,7 +184,7 @@
   .btn-primary {
     background: #111111;
     color: #ffffff;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     font-size: 12.5px;
     font-weight: 600;
     letter-spacing: 0.03em;
@@ -200,7 +206,7 @@
   .btn-brand {
     background: #FCDB56;
     color: #111111;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     font-size: 12.5px;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -221,7 +227,7 @@
   .btn-ghost {
     background: rgba(0,0,0,0.03);
     color: #555;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     font-size: 12.5px;
     font-weight: 500;
     padding: 8px 16px;
@@ -265,13 +271,13 @@
 
   /* ─── ARTICLE READING TYPOGRAPHY ─── */
   .prose-reading {
-    font-family: 'Lora', Georgia, serif;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     font-size: 1.0625rem;
     line-height: 1.85;
     color: #2a2a2a;
   }
   .prose-reading h1, .prose-reading h2, .prose-reading h3 {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     color: #111;
     font-weight: 700;
     line-height: 1.25;
@@ -326,7 +332,7 @@
     background: rgba(0,0,0,0.25);
     backdrop-filter: blur(4px);
     color: rgba(255,255,255,0.75);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Tomorrow', system-ui, sans-serif;
     font-size: 8.5px;
     font-weight: 600;
     letter-spacing: 0.1em;
