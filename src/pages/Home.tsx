@@ -179,11 +179,30 @@ export default function Home() {
 
   if (loading && published.length === 0) {
     return (
-      <main className="min-h-screen bg-[#080117] flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <span className="live-dot" />
-          <span className="font-mono text-xs text-white/60">Yüklənir...</span>
-        </div>
+      <main className="min-h-screen bg-[#080117]">
+        <section className="relative w-full overflow-hidden md:[min-height:clamp(520px,75vh,760px)]">
+          <div className="relative z-10 max-w-5xl mx-auto px-4 flex flex-col pt-28 pb-16 md:[min-height:inherit]">
+            <div className="max-w-3xl md:mt-auto md:pb-24 animate-pulse">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-5 w-24 rounded-full bg-white/10" />
+                <div className="h-3 w-20 rounded-full bg-white/10" />
+              </div>
+              <div className="space-y-3 mb-6">
+                <div className="h-9 w-full rounded-lg bg-white/10" />
+                <div className="h-9 w-3/4 rounded-lg bg-white/10" />
+              </div>
+              <div className="space-y-2 mb-8">
+                <div className="h-3 w-full rounded bg-white/8" />
+                <div className="h-3 w-2/3 rounded bg-white/8" />
+              </div>
+              <div className="flex gap-2">
+                <div className="h-6 w-16 rounded-full bg-white/8" />
+                <div className="h-6 w-16 rounded-full bg-white/8" />
+                <div className="h-6 w-16 rounded-full bg-white/8" />
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     );
   }
