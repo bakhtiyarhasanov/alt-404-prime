@@ -122,67 +122,74 @@ export default function Header() {
 
           {/* Actions — mobil: sağda */}
           <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
-            {searchOpen ? (
-              <div ref={searchRef} className="relative">
-                <form onSubmit={handleSearch} className="flex items-center gap-1.5">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Axtar..."
-                    className={`rounded-lg px-3 py-1.5 text-sm outline-none w-40 lg:w-52 transition-all font-sans border ${
-                      dark
-                        ? 'bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-white/40'
-                        : 'bg-surface-2 border-border text-text-primary placeholder-text-muted focus:border-brand/50'
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
-                    className={`p-1.5 transition-colors ${dark ? 'text-white/60 hover:text-white' : 'text-text-secondary hover:text-text-primary'}`}
-                  >
-                    <X size={15} />
-                  </button>
-                </form>
-
-                {suggestions.length > 0 && (
-                  <div className={`absolute top-full right-0 mt-2 w-72 rounded-xl overflow-hidden shadow-xl border z-50 ${
-                    dark ? 'bg-[#0f0825] border-white/12' : 'bg-surface border-border'
-                  }`}>
-                    {suggestions.map((article) => (
-                      <button
-                        key={article.id}
-                        onMouseDown={() => handleSuggestionClick(article.category, article.slug)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                          dark ? 'hover:bg-white/8' : 'hover:bg-surface-2'
-                        }`}
-                      >
-                        <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
-                          {article.image_url ? (
-                            <img src={article.image_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className={`w-full h-full ${dark ? 'bg-white/10' : 'bg-surface-2'}`} />
-                          )}
-                        </div>
-                        <span className={`font-mono text-[11px] font-medium leading-snug line-clamp-2 ${
-                          dark ? 'text-white/85' : 'text-text-primary'
-                        }`}>
-                          {article.title}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
+            {/* Search — dropdown opens BELOW the button */}
+            <div ref={searchRef} className="relative">
               <button
-                onClick={() => setSearchOpen(true)}
+                onClick={() => { setSearchOpen((v) => !v); setSearchQuery(''); }}
+                aria-label="Axtar"
                 className={`p-2 rounded-lg transition-colors ${dark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'}`}
               >
-                <Search size={15} />
+                {searchOpen ? <X size={15} /> : <Search size={15} />}
               </button>
-            )}
+
+              {searchOpen && (
+                <div
+                  className={`absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] rounded-xl shadow-xl border z-50 p-2 animate-fade-in ${
+                    dark ? 'bg-[#0f0825] border-white/12' : 'bg-surface border-border'
+                  }`}
+                >
+                  <form onSubmit={handleSearch} className="flex items-center gap-1.5">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Axtar..."
+                      className={`flex-1 min-w-0 rounded-lg px-3 py-2 text-base md:text-sm outline-none transition-all font-sans border ${
+                        dark
+                          ? 'bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-white/40'
+                          : 'bg-surface-2 border-border text-text-primary placeholder-text-muted focus:border-brand/50'
+                      }`}
+                    />
+                    <button
+                      type="submit"
+                      aria-label="Axtar"
+                      className={`p-2 rounded-lg flex-shrink-0 transition-colors ${dark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'}`}
+                    >
+                      <Search size={15} />
+                    </button>
+                  </form>
+
+                  {suggestions.length > 0 && (
+                    <div className="mt-2 -mx-2 border-t pt-1 overflow-hidden border-inherit">
+                      {suggestions.map((article) => (
+                        <button
+                          key={article.id}
+                          onMouseDown={() => handleSuggestionClick(article.category, article.slug)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                            dark ? 'hover:bg-white/8' : 'hover:bg-surface-2'
+                          }`}
+                        >
+                          <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
+                            {article.image_url ? (
+                              <img src={article.image_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className={`w-full h-full ${dark ? 'bg-white/10' : 'bg-surface-2'}`} />
+                            )}
+                          </div>
+                          <span className={`font-mono text-[11px] font-medium leading-snug line-clamp-2 ${
+                            dark ? 'text-white/85' : 'text-text-primary'
+                          }`}>
+                            {article.title}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <button
               className={`md:hidden p-2 rounded-lg transition-colors ${dark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'}`}
               onClick={() => setMenuOpen(!menuOpen)}
