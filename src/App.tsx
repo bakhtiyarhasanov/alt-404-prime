@@ -1,17 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useParams, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import CategoryPage from './pages/CategoryPage';
 import ArticlePage from './pages/ArticlePage';
-import SearchPage from './pages/SearchPage';
-import AdminPage from './pages/admin/AdminPage';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Terms from './pages/Terms';
-import Cookies from './pages/Cookies';
 import { AppProvider, useApp } from './lib/appContext';
+
+// Route-level code splitting: keep the landing/reading flow (Home, Category,
+// Article) in the main bundle, and lazy-load the heavy admin panel + the
+// secondary pages so they don't weigh down the first paint.
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Cookies = lazy(() => import('./pages/Cookies'));
 
 function ScrollToTop() {
   const { pathname, search } = useLocation();
@@ -19,6 +23,14 @@ function ScrollToTop() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname, search]);
   return null;
+}
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-canvas">
+      <span className="live-dot" />
+    </div>
+  );
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -84,12 +96,20 @@ export default function App() {
         <ScrollToTop />
         <Routes>
           {/* Admin — no layout chrome */}
-          <Route path="/admin" element={<AdminPage />} />
+          <Route
+            path="/admin"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <AdminPage />
+              </Suspense>
+            }
+          />
 
           <Route
             path="/*"
             element={
               <Layout>
+                <Suspense fallback={<RouteFallback />}>
                 <Routes>
                   {/* ── Static routes (must come before dynamic ones) ── */}
                   <Route path="/" element={<Home />} />
@@ -110,6 +130,7 @@ export default function App() {
                   {/* /:categorySlug  →  CategoryPage (guarded against unknown slugs) */}
                   <Route path="/:categorySlug" element={<CategoryOrNotFound />} />
                 </Routes>
+                </Suspense>
               </Layout>
             }
           />

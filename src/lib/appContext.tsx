@@ -65,6 +65,8 @@ type AppContextType = AppState & {
   loading: boolean;
   usingFallbackArticles: boolean;
   refresh: () => Promise<void>;
+  loadMedia: () => Promise<void>;
+  loadArticleContent: (slug: string) => Promise<void>;
   migrateLocalContent: () => Promise<{ articles: number; ads: number; categories: number; media: number }>;
 
   setArticles: (articles: Article[]) => void;
@@ -90,15 +92,23 @@ const AppContext = createContext<AppContextType | null>(null);
 
 type ArticleRow = Omit<Article, 'versions'> & { versions: ArticleVersion[] | null };
 
-function rowToArticle(r: ArticleRow): Article {
+function rowToArticle(r: Partial<ArticleRow>): Article {
   return {
-    ...r,
+    ...(r as ArticleRow),
+    // Light list queries omit the heavy `content` column; default it so cards
+    // and type-safety hold until the full article is hydrated on its page.
+    content: r.content ?? '',
     tags: r.tags ?? [],
     views: r.views ?? 0,
     versions: r.versions ?? [],
-    category: r.category === 'elm-sosial' ? 'elm-gundem' : r.category,
+    category: r.category === 'elm-sosial' ? 'elm-gundem' : (r.category ?? ''),
   };
 }
+
+// Columns needed for lists/cards — deliberately excludes `content` and
+// `versions` (the two biggest columns) to keep the initial payload small.
+const ARTICLE_LIST_COLUMNS =
+  'id,title,slug,excerpt,category,image_url,tags,featured,published,reading_time,views,created_at,updated_at';
 
 // Only the writable columns of the articles table (no id / timestamps).
 function articleToRow(a: Partial<Article>) {
@@ -216,17 +226,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      const [artRes, adRes, catRes, medRes] = await Promise.all([
-        supabase.from('articles').select('*').order('created_at', { ascending: false }),
+      // Only the data needed for the public site's first paint. The media
+      // library (admin-only) and full article bodies are fetched on demand.
+      const [artRes, adRes, catRes] = await Promise.all([
+        supabase.from('articles').select(ARTICLE_LIST_COLUMNS).order('created_at', { ascending: false }),
         supabase.from('ads').select('*'),
         supabase.from('categories').select('*').order('sort_order', { ascending: true }),
-        supabase.from('media_library').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (!artRes.error && artRes.data) {
         // Show real content. When the table is empty, keep it empty instead of
         // falling back to demo articles (the admin deleted those on purpose).
-        setArticlesState((artRes.data as ArticleRow[]).map(rowToArticle));
+        setArticlesState((artRes.data as Partial<ArticleRow>[]).map(rowToArticle));
         setUsingFallbackArticles(false);
       }
       if (!adRes.error && adRes.data && adRes.data.length > 0) {
@@ -234,9 +245,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       if (!catRes.error && catRes.data && catRes.data.length > 0) {
         setCategories((catRes.data as CategoryRow[]).map(rowToCategory));
-      }
-      if (!medRes.error && medRes.data) {
-        setMediaLibrary((medRes.data as MediaRow[]).map(rowToMedia));
       }
     } catch (e) {
       console.warn('[alt404] Failed to load content from Supabase.', e);
@@ -318,6 +326,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // Fetch the heavy `content`/`versions` for a single article on demand (used
+  // by the article page) and merge it into state so we only pay for it once.
+  const loadArticleContent = useCallback(async (slug: string): Promise<void> => {
+    if (!isSupabaseConfigured) return;
+    const { data, error } = await supabase
+      .from('articles')
+      .select('id,content,versions')
+      .eq('slug', slug)
+      .single();
+    if (error || !data) return;
+    const row = data as { id: string; content: string | null; versions: ArticleVersion[] | null };
+    setArticlesState((prev) =>
+      prev.map((a) =>
+        a.id === row.id ? { ...a, content: row.content ?? '', versions: row.versions ?? [] } : a
+      )
+    );
+  }, []);
+
   /* ── ads ── */
 
   const updateAd = async (id: string, patch: Partial<AdZone>) => {
@@ -328,7 +354,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (error) console.error('[alt404] updateAd failed:', error.message);
   };
 
-  /* ── media ── */
+  /* ── media (admin-only, loaded on demand) ── */
+
+  const mediaLoaded = useRef(false);
+  const loadMedia = useCallback(async () => {
+    if (!isSupabaseConfigured || mediaLoaded.current) return;
+    mediaLoaded.current = true;
+    const { data, error } = await supabase
+      .from('media_library')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) setMediaLibrary((data as MediaRow[]).map(rowToMedia));
+    else mediaLoaded.current = false;
+  }, []);
 
   const addMediaItem = async (item: MediaItem) => {
     const { data, error } = await supabase.from('media_library').insert(mediaToRow(item)).select().single();
@@ -431,6 +469,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loading,
         usingFallbackArticles,
         refresh,
+        loadMedia,
+        loadArticleContent,
         migrateLocalContent,
         setArticles,
         addArticle,

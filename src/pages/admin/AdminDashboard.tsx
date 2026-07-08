@@ -86,6 +86,27 @@ export default function AdminDashboard({ onLogout }: Props) {
     }
   };
 
+  // List rows omit the heavy `content`/`versions` columns, so fetch the full
+  // row before opening the editor — otherwise a save could wipe the body.
+  const openEditor = async (article: Article) => {
+    setIsNew(false);
+    if (article.content) {
+      setEditing(article);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('articles')
+      .select('content,versions')
+      .eq('id', article.id)
+      .single();
+    if (error || !data) {
+      setEditing(article);
+      return;
+    }
+    const full = data as { content: string | null; versions: Article['versions'] };
+    setEditing({ ...article, content: full.content ?? '', versions: full.versions ?? [] });
+  };
+
   const handleDelete = async (id: string) => {
     try {
       await deleteArticle(id);
@@ -273,7 +294,7 @@ export default function AdminDashboard({ onLogout }: Props) {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2 justify-end">
                             <button
-                              onClick={() => { setEditing(article); setIsNew(false); }}
+                              onClick={() => openEditor(article)}
                               className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors"
                             >
                               <Edit2 size={13} />

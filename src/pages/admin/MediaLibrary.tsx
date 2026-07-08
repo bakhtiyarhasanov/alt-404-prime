@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Upload, Trash2, Check, X, Image as ImageIcon } from 'lucide-react';
 import { useApp } from '../../lib/appContext';
 import type { MediaItem } from '../../lib/appContext';
@@ -11,7 +11,8 @@ interface Props {
 }
 
 export default function MediaLibrary({ onSelect, onClose, multiSelect = false }: Props) {
-  const { mediaLibrary, addMediaItem, updateMediaItem, deleteMediaItem } = useApp();
+  const { mediaLibrary, addMediaItem, updateMediaItem, deleteMediaItem, loadMedia } = useApp();
+  useEffect(() => { loadMedia(); }, [loadMedia]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAlt, setEditAlt] = useState('');

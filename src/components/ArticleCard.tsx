@@ -26,6 +26,8 @@ export default function ArticleCard({ article, variant = 'default' }: Props) {
         <img
           src={article.image_url}
           alt={article.title}
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
         <div className="absolute inset-0" style={{
@@ -53,6 +55,8 @@ export default function ArticleCard({ article, variant = 'default' }: Props) {
           <img
             src={article.image_url}
             alt={article.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </div>
@@ -74,7 +78,7 @@ export default function ArticleCard({ article, variant = 'default' }: Props) {
         className="group flex items-start gap-3.5 p-4 rounded-xl card"
       >
         <div className="w-[72px] h-[54px] rounded-lg overflow-hidden flex-shrink-0">
-          <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <img src={article.image_url} alt={article.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         </div>
         <div className="flex-1 min-w-0">
           <span className="category-badge text-[9px] mb-1 inline-block">{cat}</span>
@@ -94,7 +98,7 @@ export default function ArticleCard({ article, variant = 'default' }: Props) {
         className="group flex items-start gap-4 p-4 rounded-2xl card"
       >
         <div className="w-32 h-24 rounded-xl overflow-hidden flex-shrink-0">
-          <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <img src={article.image_url} alt={article.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         </div>
         <div className="flex-1 min-w-0 py-1">
           <span className="category-badge text-[9px] mb-2 inline-block">{cat}</span>
@@ -117,6 +121,8 @@ export default function ArticleCard({ article, variant = 'default' }: Props) {
         <img
           src={article.image_url}
           alt={article.title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
       </div>

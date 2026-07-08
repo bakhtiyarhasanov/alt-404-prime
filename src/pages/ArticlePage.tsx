@@ -69,7 +69,7 @@ function parseContentSegments(rawHtml: string, injectAd: boolean): ContentSegmen
 export default function ArticlePage() {
   const { categorySlug, postSlug } = useParams<{ categorySlug: string; postSlug: string }>();
   const navigate = useNavigate();
-  const { articles, categories, incrementViews } = useApp();
+  const { articles, categories, incrementViews, loadArticleContent } = useApp();
   const inlineAd = useAd('inline');
   const [copied, setCopied] = useState(false);
   const article = articles.find(
@@ -83,6 +83,16 @@ export default function ArticlePage() {
       incrementViews(article.id);
     }
   }, [article, incrementViews]);
+
+  // The list query omits article bodies for speed; hydrate the full content
+  // (and version history) the first time this article is opened.
+  const contentRequested = useRef<string | null>(null);
+  useEffect(() => {
+    if (postSlug && article && !article.content && contentRequested.current !== postSlug) {
+      contentRequested.current = postSlug;
+      loadArticleContent(postSlug);
+    }
+  }, [postSlug, article, loadArticleContent]);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(window.location.href).then(() => {
@@ -122,6 +132,8 @@ export default function ArticlePage() {
             <img
               src={article.image_url}
               alt={article.title}
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-cover"
               style={{ filter: 'brightness(0.5) saturate(1.05)' }}
             />

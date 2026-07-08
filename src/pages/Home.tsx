@@ -81,6 +81,8 @@ function VideoGallery() {
                       <img
                         src={thumb}
                         alt={v.title}
+                        loading="lazy"
+                        decoding="async"
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         style={{ filter: 'brightness(0.72)' }}
                       />
@@ -218,6 +220,8 @@ export default function Home() {
             <img
               src={heroArticle.image_url}
               alt={heroArticle.title}
+              loading="eager"
+              decoding="async"
               className="absolute inset-0 w-full h-full object-cover"
               style={{ filter: 'brightness(0.52) saturate(1.05)' }}
             />
@@ -435,6 +439,8 @@ function BottomCard({ article, compact = false }: { article: { id: string; slug:
           <img
             src={article.image_url}
             alt={article.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             style={{ filter: 'brightness(0.72) saturate(0.85)' }}
           />
