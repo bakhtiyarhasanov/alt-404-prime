@@ -215,9 +215,9 @@ function Logo({ dark }: { dark: boolean }) {
   return (
     <div className="flex items-center gap-1.5 min-w-0">
       <img
-        src="/logo.png"
+        src={dark ? '/logo.png' : '/logo-dark.png'}
         alt="alt404.com Tech News"
-        className={`h-8 w-auto max-w-[150px] object-contain transition-all rounded-sm ${dark ? 'brightness-0 invert' : ''}`}
+        className="h-8 w-auto max-w-[150px] object-contain transition-all rounded-sm"
       />
       <span className="live-dot" />
     </div>
