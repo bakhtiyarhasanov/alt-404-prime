@@ -432,9 +432,9 @@ function BottomCard({ article, compact = false }: { article: { id: string; slug:
   return (
     <Link
       to={`/${article.category}/${article.slug}`}
-      className="group rounded-xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-300"
+      className="group flex flex-col h-full rounded-xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-300"
     >
-      <div className="relative overflow-hidden" style={{ height: compact ? 60 : 78 }}>
+      <div className="relative overflow-hidden flex-shrink-0" style={{ height: compact ? 60 : 78 }}>
         {article.image_url ? (
           <img
             src={article.image_url}
@@ -458,7 +458,7 @@ function BottomCard({ article, compact = false }: { article: { id: string; slug:
         )}
       </div>
       <div
-        className={compact ? 'px-2 py-1.5' : 'px-2.5 py-2.5'}
+        className={`flex-1 ${compact ? 'px-2 py-1.5' : 'px-2.5 py-2.5'}`}
         style={{ background: 'linear-gradient(160deg, #2a1155 0%, #120430 100%)' }}
       >
         <h3 className={`font-mono font-semibold text-white/80 leading-snug group-hover:text-white transition-colors ${compact ? 'text-[9px]' : 'text-[11px]'}`}>
