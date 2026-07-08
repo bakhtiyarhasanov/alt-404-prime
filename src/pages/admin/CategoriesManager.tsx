@@ -43,6 +43,9 @@ export default function CategoriesManager() {
     curatedTagsInput: '',
   });
 
+  const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
+  const deleteTarget = deleteSlug ? sorted.find((c) => c.slug === deleteSlug) : null;
+
   function submitNew() {
     const label = form.label.trim();
     const slug = form.slug.trim();
@@ -312,7 +315,7 @@ export default function CategoriesManager() {
                   <td className="px-5 py-4 text-right">
                     <button
                       type="button"
-                      onClick={() => deleteCategory(c.slug)}
+                      onClick={() => setDeleteSlug(c.slug)}
                       className="p-1.5 rounded-lg text-text-muted hover:text-alt-red hover:bg-red-50 transition-colors"
                       title="Sil"
                     >
@@ -332,6 +335,29 @@ export default function CategoriesManager() {
           </table>
         </div>
       </div>
+
+      {deleteSlug && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl border border-border shadow-xl p-8 max-w-sm w-full">
+            <h3 className="font-mono text-lg font-bold text-text-primary mb-2">Silmək istəyirsiniz?</h3>
+            <p className="font-sans text-sm text-text-secondary mb-6">
+              {deleteTarget ? `"${deleteTarget.label}" kateqoriyası silinəcək.` : 'Bu kateqoriya silinəcək.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  deleteCategory(deleteSlug);
+                  setDeleteSlug(null);
+                }}
+                className="flex-1 bg-alt-red text-white font-mono text-sm font-semibold py-2.5 rounded-lg hover:bg-alt-red-dim transition-colors"
+              >
+                Sil
+              </button>
+              <button onClick={() => setDeleteSlug(null)} className="flex-1 btn-ghost">İmtina</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
