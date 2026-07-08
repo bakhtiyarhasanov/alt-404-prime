@@ -134,40 +134,38 @@ export default function Header() {
 
               {searchOpen && (
                 <div
-                  className={`absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] rounded-xl shadow-xl border z-50 p-2 animate-fade-in ${
-                    dark ? 'bg-[#0f0825] border-white/12' : 'bg-surface border-border'
+                  className={`absolute top-[calc(100%+1rem)] right-0 w-72 max-w-[calc(100vw-3rem)] rounded-2xl z-50 p-2 animate-fade-in ${
+                    dark ? 'capsule-nav-hero' : 'capsule-nav'
                   }`}
                 >
-                  <form onSubmit={handleSearch} className="flex items-center gap-1.5">
+                  <form onSubmit={handleSearch} className="flex items-center gap-1">
                     <input
                       autoFocus
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Axtar..."
-                      className={`flex-1 min-w-0 rounded-lg px-3 py-2 text-base md:text-sm outline-none transition-all font-sans border ${
-                        dark
-                          ? 'bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-white/40'
-                          : 'bg-surface-2 border-border text-text-primary placeholder-text-muted focus:border-brand/50'
+                      className={`flex-1 min-w-0 bg-transparent px-3 py-2 text-base md:text-sm outline-none transition-all font-sans border-none ${
+                        dark ? 'text-white placeholder-white/40' : 'text-text-primary placeholder-text-muted'
                       }`}
                     />
                     <button
                       type="submit"
                       aria-label="Axtar"
-                      className={`p-2 rounded-lg flex-shrink-0 transition-colors ${dark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'}`}
+                      className={`p-2 rounded-lg flex-shrink-0 transition-colors ${dark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-text-secondary hover:text-text-primary hover:bg-black/5'}`}
                     >
                       <Search size={15} />
                     </button>
                   </form>
 
                   {suggestions.length > 0 && (
-                    <div className="mt-2 -mx-2 border-t pt-1 overflow-hidden border-inherit">
+                    <div className={`mt-1.5 pt-1.5 border-t ${dark ? 'border-white/10' : 'border-black/8'}`}>
                       {suggestions.map((article) => (
                         <button
                           key={article.id}
                           onMouseDown={() => handleSuggestionClick(article.category, article.slug)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                            dark ? 'hover:bg-white/8' : 'hover:bg-surface-2'
+                          className={`w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors ${
+                            dark ? 'hover:bg-white/10' : 'hover:bg-black/5'
                           }`}
                         >
                           <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
