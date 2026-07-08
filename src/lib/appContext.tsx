@@ -197,12 +197,17 @@ function mediaToRow(m: Partial<MediaItem>) {
 /* ────────────────────────────── provider ────────────────────────────── */
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [articles, setArticlesState] = useState<Article[]>(mockArticles);
+  // When Supabase is configured we start empty and wait for the fetch so the
+  // real content is the first thing painted (no flash of demo articles).
+  // Without env (pure local dev) we fall back to the built-in demo articles.
+  const [articles, setArticlesState] = useState<Article[]>(
+    isSupabaseConfigured ? [] : mockArticles
+  );
   const [ads, setAds] = useState<AdZone[]>(DEFAULT_ADS);
   const [categories, setCategories] = useState<CategoryConfig[]>(DEFAULT_CATEGORIES);
   const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [usingFallbackArticles, setUsingFallbackArticles] = useState(true);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [usingFallbackArticles, setUsingFallbackArticles] = useState(!isSupabaseConfigured);
   const didInit = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -219,13 +224,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       if (!artRes.error && artRes.data) {
-        if (artRes.data.length > 0) {
-          setArticlesState((artRes.data as ArticleRow[]).map(rowToArticle));
-          setUsingFallbackArticles(false);
-        } else {
-          setArticlesState(mockArticles);
-          setUsingFallbackArticles(true);
-        }
+        // Show real content. When the table is empty, keep it empty instead of
+        // falling back to demo articles (the admin deleted those on purpose).
+        setArticlesState((artRes.data as ArticleRow[]).map(rowToArticle));
+        setUsingFallbackArticles(false);
       }
       if (!adRes.error && adRes.data && adRes.data.length > 0) {
         setAds((adRes.data as AdRow[]).map(rowToAd));

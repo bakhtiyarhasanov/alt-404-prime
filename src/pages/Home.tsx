@@ -140,7 +140,7 @@ function VideoGallery() {
 }
 
 export default function Home() {
-  const { articles, categories } = useApp();
+  const { articles, categories, loading } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTag = searchParams.get('tag');
   const [visibleCount, setVisibleCount] = useState(() =>
@@ -175,6 +175,17 @@ export default function Home() {
       setSearchParams({}, { replace: true });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  if (loading && published.length === 0) {
+    return (
+      <main className="min-h-screen bg-[#080117] flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <span className="live-dot" />
+          <span className="font-mono text-xs text-white/60">Yüklənir...</span>
+        </div>
+      </main>
+    );
   }
 
   return (
