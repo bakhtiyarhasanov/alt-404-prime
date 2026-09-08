@@ -1,7 +1,7 @@
 <template>
   <div class="app-wrapper">
-    <!-- Top Navigation Header -->
-    <header class="app-header">
+    <!-- Top Navigation Header (only when logged in) -->
+    <header v-if="authStore.isAuthenticated" class="app-header">
       <div class="header-inner">
         <div class="brand-group">
           <div class="brand-icon">
@@ -57,10 +57,20 @@
             </svg>
             <span>Tənzimləmələr</span>
           </router-link>
+
+          <router-link to="/users" class="nav-item" active-class="active">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>İstifadəçilər</span>
+          </router-link>
         </nav>
 
         <div class="header-actions">
-          <button @click="store.grabAllSources()" :disabled="store.loading" class="btn btn-secondary btn-sm">
+          <button @click="store.grabAllSources()" :disabled="store.loading" class="btn btn-secondary btn-sm" title="Bütün mənbələrdən xəbərləri topla">
             <svg class="spin-on-load" :class="{ spinning: store.loading }" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
             </svg>
@@ -72,6 +82,23 @@
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
             <span>Qaralama Hazırla</span>
+          </button>
+
+          <!-- User profile & Logout -->
+          <div class="user-session-info" v-if="authStore.user">
+            <div class="user-avatar-mini">
+              {{ (authStore.user.name || authStore.user.username).charAt(0).toUpperCase() }}
+            </div>
+            <span class="user-session-name">{{ authStore.user.username }}</span>
+          </div>
+
+          <button @click="authStore.logout()" class="btn btn-ghost btn-sm btn-logout" title="Sistemdən Çıxış">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Çıxış</span>
           </button>
         </div>
       </div>
@@ -102,21 +129,27 @@
 <script>
 import { onMounted } from 'vue'
 import { useAiWriterStore } from './stores/aiWriter'
+import { useAuthStore } from './stores/auth'
 
 export default {
   name: 'App',
   setup() {
     const store = useAiWriterStore()
+    const authStore = useAuthStore()
 
     onMounted(() => {
-      store.fetchStats()
-      // Periodic stats sync every 45s
-      setInterval(() => {
+      if (authStore.isAuthenticated) {
         store.fetchStats()
+      }
+      // Periodic stats sync every 45s if logged in
+      setInterval(() => {
+        if (authStore.isAuthenticated) {
+          store.fetchStats()
+        }
       }, 45000)
     })
 
-    return { store }
+    return { store, authStore }
   }
 }
 </script>
@@ -398,5 +431,55 @@ body {
 .toast-enter-from, .toast-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+
+/* User session badge & logout */
+.user-session-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+.user-avatar-mini {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(252, 219, 86, 0.3) 0%, rgba(0, 240, 255, 0.3) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: var(--color-accent);
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-session-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.btn-logout {
+  color: #f87171 !important;
+  border: 1px solid transparent;
+}
+.btn-logout:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5 !important;
 }
 </style>

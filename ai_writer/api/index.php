@@ -48,16 +48,307 @@ function jsonErr(string $message, int $status = 400): void {
     exit;
 }
 
+function getBearerToken(): ?string {
+    $headers = null;
+    if (isset($_SERVER['Authorization'])) {
+        $headers = trim($_SERVER['Authorization']);
+    } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $headers = trim($_SERVER['HTTP_AUTHORIZATION']);
+    } elseif (function_exists('apache_request_headers')) {
+        $requestHeaders = apache_request_headers();
+        $requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
+        if (isset($requestHeaders['Authorization'])) {
+            $headers = trim($requestHeaders['Authorization']);
+        }
+    }
+    if (!empty($headers) && preg_match('/Bearer\s(\S+)/i', $headers, $matches)) {
+        return $matches[1];
+    }
+    return null;
+}
+
+function verifyAuth(PDO $db): array {
+    $token = getBearerToken();
+    if (!$token) {
+        jsonErr('Giriş tələb olunur', 401);
+    }
+
+    $tokenHash = hash('sha256', $token);
+    $stmt = $db->prepare('
+        SELECT u.id, u.username, u.name, u.created_at
+        FROM auth_tokens t
+        JOIN users u ON t.user_id = u.id
+        WHERE t.token_hash = :hash AND t.expires_at > NOW()
+        LIMIT 1
+    ');
+    $stmt->execute(['hash' => $tokenHash]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        jsonErr('Sessiyanın vaxtı bitib və ya token yanlışdır', 401);
+    }
+
+    return $user;
+}
+
 try {
     $db = Database::getAiDB();
     $manager = new GrabberManager();
 
     // Routing parameter or path check
     $endpoint = $_GET['endpoint'] ?? '';
+    $action = $_GET['action'] ?? $input['action'] ?? '';
     if (empty($endpoint)) {
-        // Extract from path e.g. /ai_writer/api/sources -> sources
-        if (preg_match('#/api/([a-zA-Z0-9_\-]+)#', $uri, $matches)) {
+        // Extract from path e.g. /api/auth/login or /api/sources
+        if (preg_match('#/api/([a-zA-Z0-9_\-]+)(?:/([a-zA-Z0-9_\-]+))?#', $uri, $matches)) {
             $endpoint = $matches[1];
+            if (empty($action) && isset($matches[2])) {
+                $action = $matches[2];
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // 0. AUTH ENDPOINT (Login, Verify, Logout)
+    // ------------------------------------------------------------------------
+    if ($endpoint === 'auth') {
+        if ($action === 'login') {
+            $username = trim($input['username'] ?? '');
+            $password = (string)($input['password'] ?? '');
+
+            if (empty($username) || empty($password)) {
+                jsonErr('İstifadəçi adı və şifrə daxil edilməlidir', 400);
+            }
+
+            $stmt = $db->prepare("SELECT * FROM users WHERE username = :u LIMIT 1");
+            $stmt->execute(['u' => $username]);
+            $user = $stmt->fetch();
+
+            if (!$user || !password_verify($password, $user['password'])) {
+                jsonErr('İstifadəçi adı və ya şifrə yanlışdır', 401);
+            }
+
+            $sessionToken = bin2hex(random_bytes(32));
+            $tokenHash = hash('sha256', $sessionToken);
+            $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
+
+            $ins = $db->prepare("INSERT INTO auth_tokens (user_id, token_hash, expires_at) VALUES (:uid, :thash, :exp)");
+            $ins->execute([
+                'uid' => $user['id'],
+                'thash' => $tokenHash,
+                'exp' => $expires
+            ]);
+
+            jsonOut([
+                'success' => true,
+                'token' => $sessionToken,
+                'user' => [
+                    'id' => (int)$user['id'],
+                    'username' => $user['username'],
+                    'name' => $user['name'] ?: $user['username']
+                ]
+            ]);
+        }
+
+        if ($action === 'verify') {
+            $currentUser = verifyAuth($db);
+            jsonOut([
+                'success' => true,
+                'user' => [
+                    'id' => (int)$currentUser['id'],
+                    'username' => $currentUser['username'],
+                    'name' => $currentUser['name'] ?: $currentUser['username'],
+                    'created_at' => $currentUser['created_at']
+                ]
+            ]);
+        }
+
+        if ($action === 'logout') {
+            $token = getBearerToken();
+            if ($token) {
+                $tokenHash = hash('sha256', $token);
+                $del = $db->prepare("DELETE FROM auth_tokens WHERE token_hash = :hash");
+                $del->execute(['hash' => $tokenHash]);
+            }
+            jsonOut(['success' => true, 'message' => 'Uğurla çıxış edildi']);
+        }
+
+        jsonErr("Bilinməyən auth əməliyyatı: {$action}", 400);
+    }
+
+    // Require authentication for all subsequent endpoints
+    $currentUser = verifyAuth($db);
+
+    // ------------------------------------------------------------------------
+    // USER MANAGEMENT ENDPOINT (Admin created, single level)
+    // ------------------------------------------------------------------------
+    if ($endpoint === 'users') {
+        if ($method === 'GET') {
+            $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+            if ($id > 0) {
+                $stmt = $db->prepare("SELECT id, username, name, created_at, updated_at FROM users WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+                $u = $stmt->fetch();
+                if (!$u) jsonErr('İstifadəçi tapılmadı', 404);
+                $u['id'] = (int)$u['id'];
+                jsonOut(['success' => true, 'user' => $u]);
+            }
+
+            $stmt = $db->query("SELECT id, username, name, created_at, updated_at FROM users ORDER BY id ASC");
+            $users = $stmt->fetchAll();
+            foreach ($users as &$u) {
+                $u['id'] = (int)$u['id'];
+            }
+            jsonOut(['success' => true, 'users' => $users]);
+        }
+
+        if ($method === 'POST') {
+            if ($action === 'update') {
+                $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
+                if (!$id) jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
+
+                $stmt = $db->prepare("SELECT * FROM users WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+                $targetUser = $stmt->fetch();
+                if (!$targetUser) jsonErr('İstifadəçi tapılmadı', 404);
+
+                $username = trim($input['username'] ?? $targetUser['username']);
+                $name = trim($input['name'] ?? $targetUser['name']);
+                $password = (string)($input['password'] ?? '');
+
+                if ($username !== $targetUser['username']) {
+                    if (strlen($username) < 3 || !preg_match('/^[a-zA-Z0-9_\.\-]+$/', $username)) {
+                        jsonErr('İstifadəçi adı ən azı 3 simvol olmalı və yalnız hərf/rəqəm içərməlidir');
+                    }
+                    $check = $db->prepare("SELECT id FROM users WHERE username = :u AND id != :id");
+                    $check->execute(['u' => $username, 'id' => $id]);
+                    if ($check->fetch()) {
+                        jsonErr('Bu istifadəçi adı artıq başqa istifadəçi tərəfindən istifadə olunur');
+                    }
+                }
+
+                if (!empty($password)) {
+                    if (strlen($password) < 4) {
+                        jsonErr('Yeni şifrə ən azı 4 simvol olmalıdır');
+                    }
+                    $passHash = password_hash($password, PASSWORD_DEFAULT);
+                    $upd = $db->prepare("UPDATE users SET username = :u, name = :n, password = :p WHERE id = :id");
+                    $upd->execute(['u' => $username, 'n' => $name, 'p' => $passHash, 'id' => $id]);
+                } else {
+                    $upd = $db->prepare("UPDATE users SET username = :u, name = :n WHERE id = :id");
+                    $upd->execute(['u' => $username, 'n' => $name, 'id' => $id]);
+                }
+
+                jsonOut(['success' => true, 'message' => 'İstifadəçi məlumatları uğurla yeniləndi']);
+            }
+
+            if ($action === 'delete') {
+                $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
+                if (!$id) jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
+                if ($id === (int)$currentUser['id']) {
+                    jsonErr('Öz hesabınızı silə bilməzsiniz', 400);
+                }
+
+                $total = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+                if ($total <= 1) {
+                    jsonErr('Sistemdə ən azı bir istifadəçi qalmalıdır', 400);
+                }
+
+                $del = $db->prepare("DELETE FROM users WHERE id = :id");
+                $del->execute(['id' => $id]);
+                jsonOut(['success' => true, 'message' => 'İstifadəçi uğurla silindi']);
+            }
+
+            // Create new user (admin-only, no public registration)
+            $username = trim($input['username'] ?? '');
+            $name = trim($input['name'] ?? '');
+            $password = (string)($input['password'] ?? '');
+
+            if (empty($username) || strlen($username) < 3) {
+                jsonErr('İstifadəçi adı ən azı 3 simvol olmalıdır');
+            }
+            if (!preg_match('/^[a-zA-Z0-9_\.\-]+$/', $username)) {
+                jsonErr('İstifadəçi adı yalnız latın hərfləri, rəqəmlər, altxətt və nöqtə ola bilər');
+            }
+            if (empty($password) || strlen($password) < 4) {
+                jsonErr('Şifrə ən azı 4 simvol olmalıdır');
+            }
+
+            $check = $db->prepare("SELECT id FROM users WHERE username = :u");
+            $check->execute(['u' => $username]);
+            if ($check->fetch()) {
+                jsonErr('Bu istifadəçi adı artıq mövcuddur');
+            }
+
+            $passHash = password_hash($password, PASSWORD_DEFAULT);
+            $ins = $db->prepare("INSERT INTO users (username, name, password) VALUES (:u, :n, :p)");
+            $ins->execute([
+                'u' => $username,
+                'n' => $name ?: $username,
+                'p' => $passHash
+            ]);
+
+            jsonOut([
+                'success' => true,
+                'id' => (int)$db->lastInsertId(),
+                'message' => 'Yeni istifadəçi uğurla yaradıldı'
+            ]);
+        }
+
+        if ($method === 'PUT') {
+            $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
+            if (!$id) jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
+
+            $stmt = $db->prepare("SELECT * FROM users WHERE id = :id");
+            $stmt->execute(['id' => $id]);
+            $targetUser = $stmt->fetch();
+            if (!$targetUser) jsonErr('İstifadəçi tapılmadı', 404);
+
+            $username = trim($input['username'] ?? $targetUser['username']);
+            $name = trim($input['name'] ?? $targetUser['name']);
+            $password = (string)($input['password'] ?? '');
+
+            if ($username !== $targetUser['username']) {
+                if (strlen($username) < 3 || !preg_match('/^[a-zA-Z0-9_\.\-]+$/', $username)) {
+                    jsonErr('İstifadəçi adı ən azı 3 simvol olmalı və yalnız hərf/rəqəm içərməlidir');
+                }
+                $check = $db->prepare("SELECT id FROM users WHERE username = :u AND id != :id");
+                $check->execute(['u' => $username, 'id' => $id]);
+                if ($check->fetch()) {
+                    jsonErr('Bu istifadəçi adı artıq başqa istifadəçi tərəfindən istifadə olunur');
+                }
+            }
+
+            if (!empty($password)) {
+                if (strlen($password) < 4) {
+                    jsonErr('Yeni şifrə ən azı 4 simvol olmalıdır');
+                }
+                $passHash = password_hash($password, PASSWORD_DEFAULT);
+                $upd = $db->prepare("UPDATE users SET username = :u, name = :n, password = :p WHERE id = :id");
+                $upd->execute(['u' => $username, 'n' => $name, 'p' => $passHash, 'id' => $id]);
+            } else {
+                $upd = $db->prepare("UPDATE users SET username = :u, name = :n WHERE id = :id");
+                $upd->execute(['u' => $username, 'n' => $name, 'id' => $id]);
+            }
+
+            jsonOut(['success' => true, 'message' => 'İstifadəçi məlumatları uğurla yeniləndi']);
+        }
+
+        if ($method === 'DELETE') {
+            $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
+            if (!$id) jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
+            if ($id === (int)$currentUser['id']) {
+                jsonErr('Öz hesabınızı silə bilməzsiniz', 400);
+            }
+
+            $total = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            if ($total <= 1) {
+                jsonErr('Sistemdə ən azı bir istifadəçi qalmalıdır', 400);
+            }
+
+            $del = $db->prepare("DELETE FROM users WHERE id = :id");
+            $del->execute(['id' => $id]);
+            jsonOut(['success' => true, 'message' => 'İstifadəçi uğurla silindi']);
         }
     }
 

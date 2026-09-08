@@ -127,6 +127,13 @@ npm run dev
 ```
 Brauzerdə: **`http://localhost:5174`** açılacaq.
 
+### İlkin Giriş Məlumatları (Default Login):
+AI Writer tək səviyyəli istifadəçi idarəetməsi ilə qorunur (açıq qeydiyyat yoxdur):
+- **İstifadəçi adı**: `admin`
+- **Şifrə**: `admin`
+
+Daxil olduqdan sonra **İstifadəçilər** (`/users`) bölməsindən yeni istifadəçilər əlavə edə, mövcud istifadəçilərin şifrəsini dəyişə və ya silə bilərsiniz.
+
 ### Production Build:
 Artıq `ai_writer/manager/dist` qovluğunda komplayasiya olunmuşdur. Veb server vasitəsilə `http://localhost:8000/ai_writer/` ünvanına daxil olduqda birbaşa Manager UI açılır.
 

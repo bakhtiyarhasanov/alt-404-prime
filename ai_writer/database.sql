@@ -71,6 +71,33 @@ CREATE TABLE IF NOT EXISTS `settings` (
   PRIMARY KEY (`setting_key`)
 ) ENGINE=InnoDB;
 
+-- ---------------------------------------------------------------------------
+-- 4. users: AI Writer Manager Users (single admin level, admin-created)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` INT AUTO_INCREMENT NOT NULL,
+  `username` VARCHAR(100) NOT NULL UNIQUE,
+  `name` VARCHAR(255) NOT NULL DEFAULT '',
+  `password` VARCHAR(255) NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------------
+-- 5. auth_tokens: Session tokens for AI Writer authentication
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `auth_tokens` (
+  `id` INT AUTO_INCREMENT NOT NULL,
+  `user_id` INT NOT NULL,
+  `token_hash` VARCHAR(64) NOT NULL UNIQUE,
+  `expires_at` DATETIME NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_token_hash` (`token_hash`),
+  CONSTRAINT `fk_auth_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ===========================================================================
 -- SEED DATA: 12 INITIAL SOURCES
 -- ===========================================================================
@@ -107,3 +134,11 @@ INSERT INTO `settings` (`setting_key`, `setting_value`, `description`) VALUES
   ('system_prompt', 'Sən peşəkar xəbər jurnalistisən. Xarici dildəki texnoloji və ictimai xəbərləri araşdıraraq səlis, anlaşıqlı, bitərəf və peşəkar Azərbaycan dilinə adaptasiya edib yenidən yazırsan.', 'AI System Prompt for rewriting news'),
   ('regenerate_prompt', 'Linkdəki xəbəri diqqətlə oxu, həqiqiliyini digər mənbələrdə araşdırdıqdan sonra Azərbaycan dilində yaz. Mətnlə bağlı tələblər belədir -\nMətnə uyğun ən uyğun, təsirli başlıq yaz.\nBütün xüsusi isimlər Azərbaycan dilində yazılması, düzgün yazılış forması saytlarda yoxlanılmalıdır.\nSəliqəli, abzaslara bölünmüş şəkildə aydın dildə yaz. Xəbərə və yaşanan hadisələrə münasibət bildirmə, sadəcə, xəbəri çatdır.\nMətndə xüsusi vurğulamaq istədiyin hissələri boldla və ya kursivlə vermə, sadə fontla ver hamısını.\nSonda xəbəri yazarkən istifadə etdiyin bütün mənbələri bu şəkildə qeyd et -\nMƏNBƏ:\nmənbə 1 link şəklində\nmənbə 2 link şəklində\nmənbə 3 link şəklində və s.\nİstinad etdiyin mənbə sayı 5-dən çox olmasın. Link uzun olduqda ixtisar et və … nöqtə ilə tamamla. Məsələn, [ https://www.kaldata.com/it-%d0%bd%d0%be%](https://www.kaldata.com/it-%25d0%25bd%25d0%25be%25)…', 'AI Regenerate / Rewrite Prompt for OpenAI news generation')
 ON DUPLICATE KEY UPDATE `setting_key` = `setting_key`;
+
+-- ===========================================================================
+-- SEED DATA: DEFAULT ADMIN USER (admin / admin)
+-- ===========================================================================
+INSERT INTO `users` (`id`, `username`, `name`, `password`) VALUES
+  (1, 'admin', 'Administrator', '$2y$12$ovbj2r/orxUviYwpXiMrwOJ6ECKcNZo17LdB0OTbjjgkdFv5WtLu2')
+ON DUPLICATE KEY UPDATE `username` = `username`;
+

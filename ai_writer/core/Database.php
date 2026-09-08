@@ -96,27 +96,70 @@ class Database {
     public static function ensureSchema(): void {
         if (!self::$aiPdo) return;
 
-        // Check if sources table exists
-        $check = self::$aiPdo->query("SHOW TABLES LIKE 'sources'")->fetch();
-        if ($check) {
-            return;
-        }
-
-        $sqlFile = __DIR__ . '/../database.sql';
-        if (file_exists($sqlFile)) {
-            $sql = file_get_contents($sqlFile);
-            // Split and run statements
-            $statements = array_filter(array_map('trim', explode(';', $sql)));
-            foreach ($statements as $stmt) {
-                if (empty($stmt)) continue;
-                // Skip USE statements to preserve existing selected db
-                if (stripos($stmt, 'USE ') === 0) continue;
-                try {
-                    self::$aiPdo->exec($stmt);
-                } catch (PDOException $e) {
-                    // Ignore non-fatal duplicates
+        // Check and create sources/grabbed_news/settings if sources table is missing
+        $checkSources = self::$aiPdo->query("SHOW TABLES LIKE 'sources'")->fetch();
+        if (!$checkSources) {
+            $sqlFile = __DIR__ . '/../database.sql';
+            if (file_exists($sqlFile)) {
+                $sql = file_get_contents($sqlFile);
+                $statements = array_filter(array_map('trim', explode(';', $sql)));
+                foreach ($statements as $stmt) {
+                    if (empty($stmt)) continue;
+                    if (stripos($stmt, 'USE ') === 0) continue;
+                    try {
+                        self::$aiPdo->exec($stmt);
+                    } catch (PDOException $e) {
+                        // Ignore non-fatal duplicates
+                    }
                 }
             }
+        }
+
+        // Ensure users and auth_tokens tables exist
+        $checkUsers = self::$aiPdo->query("SHOW TABLES LIKE 'users'")->fetch();
+        if (!$checkUsers) {
+            self::$aiPdo->exec("
+                CREATE TABLE IF NOT EXISTS `users` (
+                  `id` INT AUTO_INCREMENT NOT NULL,
+                  `username` VARCHAR(100) NOT NULL UNIQUE,
+                  `name` VARCHAR(255) NOT NULL DEFAULT '',
+                  `password` VARCHAR(255) NOT NULL,
+                  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+        }
+
+        $checkTokens = self::$aiPdo->query("SHOW TABLES LIKE 'auth_tokens'")->fetch();
+        if (!$checkTokens) {
+            self::$aiPdo->exec("
+                CREATE TABLE IF NOT EXISTS `auth_tokens` (
+                  `id` INT AUTO_INCREMENT NOT NULL,
+                  `user_id` INT NOT NULL,
+                  `token_hash` VARCHAR(64) NOT NULL UNIQUE,
+                  `expires_at` DATETIME NOT NULL,
+                  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  KEY `idx_token_hash` (`token_hash`),
+                  CONSTRAINT `fk_ai_auth_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+        }
+
+        // Check if there is at least one admin user, seed default if empty
+        $userCount = (int)self::$aiPdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        if ($userCount === 0) {
+            $defaultHash = password_hash('admin', PASSWORD_DEFAULT);
+            $stmt = self::$aiPdo->prepare("
+                INSERT INTO `users` (`username`, `name`, `password`)
+                VALUES (:username, :name, :password)
+            ");
+            $stmt->execute([
+                'username' => 'admin',
+                'name' => 'Administrator',
+                'password' => $defaultHash
+            ]);
         }
     }
 
