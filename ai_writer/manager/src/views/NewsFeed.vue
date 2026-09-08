@@ -326,7 +326,7 @@ export default {
 .page-header h1 {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .page-desc {
@@ -344,6 +344,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .status-pills {
@@ -353,8 +354,8 @@ export default {
 }
 
 .pill-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--border-subtle);
   color: var(--text-muted);
   padding: 7px 16px;
   border-radius: var(--radius-full);
@@ -365,8 +366,8 @@ export default {
 }
 
 .pill-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--btn-secondary-hover);
+  color: var(--text-main);
 }
 
 .pill-btn.active {
@@ -397,7 +398,7 @@ export default {
   flex: 1;
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text-main);
   font-size: 0.88rem;
   outline: none;
 }
@@ -413,7 +414,7 @@ export default {
 .filter-select {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  color: #fff;
+  color: var(--text-main);
   padding: 10px 16px;
   border-radius: var(--radius-md);
   font-size: 0.85rem;
@@ -437,10 +438,11 @@ export default {
   align-items: center;
   gap: 20px;
   transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .news-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-glow);
   background: var(--bg-card-hover);
 }
 
@@ -516,7 +518,7 @@ export default {
 .news-title {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
   cursor: pointer;
   line-height: 1.35;
 }
@@ -570,7 +572,7 @@ export default {
 }
 
 .btn-icon {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--btn-secondary-bg);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
   width: 34px;
@@ -584,8 +586,9 @@ export default {
 }
 
 .btn-icon:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--btn-secondary-hover);
+  color: var(--text-main);
+  border-color: var(--border-glow);
 }
 
 .btn-delete:hover {

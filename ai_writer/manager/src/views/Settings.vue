@@ -61,23 +61,120 @@
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">Model Seçimi</label>
-            <select v-model="form.openai_model" class="form-select">
-              <option value="gpt-4o-mini">gpt-4o-mini (Tövsiyə olunan, sürətli və qənaətli)</option>
-              <option value="gpt-4o">gpt-4o (Maksimum dəqiqlik və zəngin üslub)</option>
-              <option value="gpt-4-turbo">gpt-4-turbo</option>
-              <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+            <div class="label-row-between">
+              <label class="form-label mb-0">Model Seçimi</label>
+              <span v-if="isReasoningModel" class="label-badge badge-cyan" title="o-seriyası düşüncə modeli">Reasoning</span>
+            </div>
+
+            <select v-model="selectedModel" @change="onModelSelectChange" class="form-select">
+              <!-- GPT-5.6 Seriyası (Sol, Terra, Luna) -->
+              <optgroup label="🌟 GPT-5.6 Seriyası (Sol, Terra, Luna)">
+                <option value="gpt-5.6-sol">gpt-5.6-sol (GPT-5.6 Sol: Flaqman 1M kontekst, dərin analiz və yüksək dəqiqlik)</option>
+                <option value="gpt-5.6">gpt-5.6 (GPT-5.6 Sol üçün birbaşa alias)</option>
+                <option value="gpt-5.6-terra">gpt-5.6-terra (GPT-5.6 Terra: Balanslı orta səviyyə)</option>
+                <option value="gpt-5.6-luna">gpt-5.6-luna (GPT-5.6 Luna: Ultra-sürətli və qənaətli)</option>
+              </optgroup>
+
+              <!-- Tövsiyə Olunan & Ən Populyar Modellər -->
+              <optgroup label="⭐ Tövsiyə Olunan & Populyar Modellər">
+                <option value="gpt-4o-mini">gpt-4o-mini (Tövsiyə olunur: sürətli, qənaətli və yüksək keyfiyyət)</option>
+                <option value="gpt-4o">gpt-4o (Flaqman: maksimum dəqiqlik və zəngin üslub)</option>
+                <option value="chatgpt-4o-latest">chatgpt-4o-latest (ChatGPT son versiya dinamik model)</option>
+                <option value="o3-mini">o3-mini (Ən son sürətli reasoning / mühakimə modeli)</option>
+              </optgroup>
+
+              <!-- GPT-4o və GPT-4.5 Seriyası -->
+              <optgroup label="🚀 GPT-4o və GPT-4.5 Seriyası">
+                <option value="gpt-4.5-preview">gpt-4.5-preview (GPT-4.5 Preview - ən böyük intellektual model)</option>
+                <option value="gpt-4o-2024-11-20">gpt-4o-2024-11-20 (GPT-4o son sabit snapshot)</option>
+                <option value="gpt-4o-2024-08-06">gpt-4o-2024-08-06 (GPT-4o strukturlaşdırılmış çıxış)</option>
+                <option value="gpt-4o-2024-05-13">gpt-4o-2024-05-13 (GPT-4o ilkin buraxılış)</option>
+                <option value="gpt-4o-mini-2024-07-18">gpt-4o-mini-2024-07-18 (GPT-4o Mini sabit snapshot)</option>
+              </optgroup>
+
+              <!-- OpenAI o1 və o3 Reasoning Modelləri -->
+              <optgroup label="🧠 OpenAI Düşüncə və Reasoning (o-Seriyası)">
+                <option value="o3-mini">o3-mini (Yüksək sürətli dərrakəli mühakimə)</option>
+                <option value="o1">o1 (Tam dərin məntiq və mühakimə flaqmanı)</option>
+                <option value="o1-2024-12-17">o1-2024-12-17 (o1 rəsmi sabit versiya)</option>
+                <option value="o1-mini">o1-mini (Sürətli düşünmə və analiz modeli)</option>
+                <option value="o1-mini-2024-09-12">o1-mini-2024-09-12 (o1-mini snapshot)</option>
+                <option value="o1-preview">o1-preview (İlk mühakimə preview modeli)</option>
+                <option value="o1-preview-2024-09-12">o1-preview-2024-09-12 (o1-preview snapshot)</option>
+              </optgroup>
+
+              <!-- GPT-4 Turbo Seriyası -->
+              <optgroup label="⚡ GPT-4 Turbo Seriyası">
+                <option value="gpt-4-turbo">gpt-4-turbo (128k kontekst, son bilik bazası)</option>
+                <option value="gpt-4-turbo-2024-04-09">gpt-4-turbo-2024-04-09 (GPT-4 Turbo rəsmi buraxılış)</option>
+                <option value="gpt-4-turbo-preview">gpt-4-turbo-preview (Turbo ön baxış)</option>
+                <option value="gpt-4-0125-preview">gpt-4-0125-preview (Turbo 0125 snapshot)</option>
+                <option value="gpt-4-1106-preview">gpt-4-1106-preview (Turbo 1106 snapshot)</option>
+              </optgroup>
+
+              <!-- Klassik GPT-4 Seriyası -->
+              <optgroup label="🏛️ Klassik GPT-4 Seriyası">
+                <option value="gpt-4">gpt-4 (Klassik baza modeli)</option>
+                <option value="gpt-4-0613">gpt-4-0613 (GPT-4 snapshot 0613)</option>
+                <option value="gpt-4-0314">gpt-4-0314 (İlk GPT-4 snapshot)</option>
+                <option value="gpt-4-32k">gpt-4-32k (32k genişləndirilmiş kontekst)</option>
+                <option value="gpt-4-32k-0613">gpt-4-32k-0613 (32k snapshot 0613)</option>
+              </optgroup>
+
+              <!-- GPT-3.5 Turbo Seriyası -->
+              <optgroup label="📦 GPT-3.5 Turbo Seriyası">
+                <option value="gpt-3.5-turbo">gpt-3.5-turbo (Standart GPT-3.5 Turbo)</option>
+                <option value="gpt-3.5-turbo-0125">gpt-3.5-turbo-0125 (GPT-3.5 ən son versiya)</option>
+                <option value="gpt-3.5-turbo-1106">gpt-3.5-turbo-1106 (16k pəncərə)</option>
+                <option value="gpt-3.5-turbo-16k">gpt-3.5-turbo-16k (16k böyük kontekst)</option>
+                <option value="gpt-3.5-turbo-0613">gpt-3.5-turbo-0613 (Klassik snapshot)</option>
+              </optgroup>
+
+              <!-- Digər / Fərdi Model -->
+              <optgroup label="⚙️ Digər">
+                <option value="__custom__">✏️ Fərdi model adı daxil et...</option>
+              </optgroup>
             </select>
+
+            <!-- Custom Model Textbox if chosen -->
+            <div v-if="isCustomModel" class="custom-model-box">
+              <div class="custom-input-wrap">
+                <input 
+                  type="text" 
+                  v-model="customModelName" 
+                  @input="onCustomModelInput" 
+                  placeholder="Məs: ft:gpt-4o:my-org::abc123" 
+                  class="form-input" 
+                />
+                <button 
+                  type="button" 
+                  @click="cancelCustomModel" 
+                  class="btn btn-secondary btn-sm"
+                  title="Standart siyahıya qayıt"
+                >
+                  Ləğv et
+                </button>
+              </div>
+              <span class="field-hint">OpenAI hesabınızdakı hər hansı yeni və ya fine-tuned model ID-sini daxil edin.</span>
+            </div>
+
+            <span class="field-hint" v-if="!isCustomModel">
+              Cari model: <code>{{ form.openai_model }}</code>
+            </span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Temperatur (Yaradıcılıq: {{ form.openai_temperature }})</label>
+            <div class="label-row-between">
+              <label class="form-label mb-0">Temperatur (Yaradıcılıq: {{ form.openai_temperature }})</label>
+              <span v-if="isReasoningModel" class="label-badge badge-cyan">Sabit (Reasoning)</span>
+            </div>
             <input 
               type="range" 
               min="0.1" 
               max="1.0" 
               step="0.05" 
               v-model="form.openai_temperature" 
+              :disabled="isReasoningModel"
               class="form-range" 
             />
             <div class="range-labels">
@@ -85,6 +182,9 @@
               <span>Balanslı (0.7)</span>
               <span>Yaradıcı (1.0)</span>
             </div>
+            <span v-if="isReasoningModel" class="field-hint">
+              Qeyd: o1 və o3 düşüncə modellərində temperatur avtomatik daxili mühakimə ilə idarə olunur.
+            </span>
           </div>
         </div>
 
@@ -235,7 +335,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useAiWriterStore } from '../stores/aiWriter'
 
 const DEFAULT_REGENERATE_PROMPT = `Linkdəki xəbəri diqqətlə oxu, həqiqiliyini digər mənbələrdə araşdırdıqdan sonra Azərbaycan dilində yaz. Mətnlə bağlı tələblər belədir -
@@ -249,6 +349,43 @@ mənbə 1 link şəklində
 mənbə 2 link şəklində
 mənbə 3 link şəklində və s.
 İstinad etdiyin mənbə sayı 5-dən çox olmasın. Link uzun olduqda ixtisar et və … nöqtə ilə tamamla. Məsələn, [ https://www.kaldata.com/it-%d0%bd%d0%be%](https://www.kaldata.com/it-%25d0%25bd%25d0%25be%25)…`
+
+const PREDEFINED_MODELS = [
+  'gpt-5.6-sol',
+  'gpt-5.6',
+  'gpt-5.6-terra',
+  'gpt-5.6-luna',
+  'gpt-4o-mini',
+  'gpt-4o',
+  'chatgpt-4o-latest',
+  'gpt-4.5-preview',
+  'gpt-4o-2024-11-20',
+  'gpt-4o-2024-08-06',
+  'gpt-4o-2024-05-13',
+  'gpt-4o-mini-2024-07-18',
+  'o3-mini',
+  'o1',
+  'o1-2024-12-17',
+  'o1-mini',
+  'o1-mini-2024-09-12',
+  'o1-preview',
+  'o1-preview-2024-09-12',
+  'gpt-4-turbo',
+  'gpt-4-turbo-2024-04-09',
+  'gpt-4-turbo-preview',
+  'gpt-4-0125-preview',
+  'gpt-4-1106-preview',
+  'gpt-4',
+  'gpt-4-0613',
+  'gpt-4-0314',
+  'gpt-4-32k',
+  'gpt-4-32k-0613',
+  'gpt-3.5-turbo',
+  'gpt-3.5-turbo-0125',
+  'gpt-3.5-turbo-1106',
+  'gpt-3.5-turbo-16k',
+  'gpt-3.5-turbo-0613'
+]
 
 export default {
   name: 'Settings',
@@ -271,6 +408,45 @@ export default {
       auto_publish_draft: '1'
     })
 
+    const selectedModel = ref('gpt-4o-mini')
+    const customModelName = ref('')
+
+    const isCustomModel = computed(() => selectedModel.value === '__custom__')
+    const isReasoningModel = computed(() => /^(o1|o3)/i.test(form.openai_model))
+
+    const syncModelFromForm = () => {
+      const current = (form.openai_model || '').trim()
+      if (!current) {
+        selectedModel.value = 'gpt-4o-mini'
+        form.openai_model = 'gpt-4o-mini'
+        customModelName.value = ''
+      } else if (PREDEFINED_MODELS.includes(current)) {
+        selectedModel.value = current
+        customModelName.value = ''
+      } else {
+        selectedModel.value = '__custom__'
+        customModelName.value = current
+      }
+    }
+
+    const onModelSelectChange = () => {
+      if (selectedModel.value === '__custom__') {
+        form.openai_model = customModelName.value || ''
+      } else {
+        form.openai_model = selectedModel.value
+      }
+    }
+
+    const onCustomModelInput = () => {
+      form.openai_model = customModelName.value.trim()
+    }
+
+    const cancelCustomModel = () => {
+      selectedModel.value = 'gpt-4o-mini'
+      form.openai_model = 'gpt-4o-mini'
+      customModelName.value = ''
+    }
+
     onMounted(async () => {
       await store.fetchSettings()
       if (store.settings) {
@@ -280,6 +456,7 @@ export default {
           }
         })
       }
+      syncModelFromForm()
       testDatabaseConnections()
     })
 
@@ -289,6 +466,9 @@ export default {
     }
 
     const saveAll = async () => {
+      if (selectedModel.value === '__custom__') {
+        form.openai_model = customModelName.value.trim() || 'gpt-4o-mini'
+      }
       await store.saveSettings(form)
     }
 
@@ -296,7 +476,8 @@ export default {
       testingAi.value = true
       aiTestMsg.value = ''
       try {
-        const res = await store.testOpenAI(form.openai_api_key, form.openai_model)
+        const modelToTest = form.openai_model || 'gpt-4o-mini'
+        const res = await store.testOpenAI(form.openai_api_key, modelToTest)
         aiTestSuccess.value = true
         aiTestMsg.value = res.message || 'OpenAI API ilə əlaqə uğurludur!'
       } catch (err) {
@@ -319,6 +500,13 @@ export default {
     return {
       store,
       form,
+      selectedModel,
+      customModelName,
+      isCustomModel,
+      isReasoningModel,
+      onModelSelectChange,
+      onCustomModelInput,
+      cancelCustomModel,
       saveAll,
       resetRegeneratePrompt,
       testingAi,
@@ -349,7 +537,7 @@ export default {
 .page-header h1 {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .page-desc {
@@ -377,13 +565,14 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  box-shadow: var(--shadow-card);
 }
 
 .card-heading {
   display: flex;
   align-items: center;
   gap: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 16px;
 }
 
@@ -402,7 +591,7 @@ export default {
 .card-heading h3 {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .card-heading p {
@@ -423,7 +612,7 @@ export default {
   justify-content: space-between;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .label-badge {
@@ -438,6 +627,28 @@ export default {
   background: rgba(252, 219, 86, 0.18);
   color: var(--color-primary);
   font-weight: 600;
+}
+
+.badge-cyan {
+  background: rgba(0, 240, 255, 0.18);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.custom-model-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.custom-input-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.custom-input-wrap input {
+  flex: 1;
 }
 
 .label-row-between {
@@ -481,7 +692,7 @@ export default {
 .form-input, .form-select, .form-textarea {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  color: #fff;
+  color: var(--text-main);
   padding: 10px 14px;
   border-radius: var(--radius-md);
   font-size: 0.88rem;
@@ -540,8 +751,8 @@ export default {
 /* Toggle */
 .toggle-control {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
   cursor: pointer;
   user-select: none;
 }
@@ -551,21 +762,24 @@ export default {
 }
 
 .switch-box {
-  width: 40px;
-  height: 22px;
-  background: #334155;
+  width: 42px;
+  height: 24px;
+  background: #cbd5e1;
   border-radius: 99px;
   position: relative;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  margin-top: 2px;
+}
+
+.theme-dark .switch-box {
+  background: #334155;
 }
 
 .switch-box::after {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 3px;
+  left: 3px;
   width: 18px;
   height: 18px;
   background: #fff;
@@ -584,7 +798,7 @@ export default {
 .toggle-control strong {
   display: block;
   font-size: 0.92rem;
-  color: #fff;
+  color: var(--text-main);
   margin-bottom: 2px;
 }
 
@@ -597,7 +811,7 @@ export default {
 
 .db-box {
   background: var(--bg-surface);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 16px;
   display: flex;

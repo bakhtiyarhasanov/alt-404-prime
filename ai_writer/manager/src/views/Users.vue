@@ -479,7 +479,7 @@ export default {
 .view-title {
   font-size: 26px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-main);
   letter-spacing: -0.02em;
 }
 
@@ -493,7 +493,7 @@ export default {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  background: rgba(0, 240, 255, 0.05);
+  background: var(--color-accent-dim);
   border: 1px solid rgba(0, 240, 255, 0.18);
   border-radius: var(--radius-md);
   padding: 16px 20px;
@@ -513,6 +513,7 @@ export default {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .card-header {
@@ -529,7 +530,7 @@ export default {
   gap: 10px;
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .count-badge {
@@ -606,7 +607,7 @@ export default {
 
 .user-name {
   font-weight: 600;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .current-user-tag {
@@ -655,13 +656,13 @@ export default {
 .edit-btn {
   color: var(--text-muted);
   border-color: var(--border-subtle);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--btn-secondary-bg);
 }
 
 .edit-btn:hover {
-  color: #fff;
-  border-color: var(--color-accent);
-  background: rgba(0, 240, 255, 0.08);
+  color: var(--text-main);
+  border-color: var(--border-glow);
+  background: var(--btn-secondary-hover);
 }
 
 .delete-btn {
@@ -753,7 +754,7 @@ export default {
 .modal-header h3 {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .modal-header-danger h3 {
@@ -770,7 +771,7 @@ export default {
 }
 
 .close-btn:hover {
-  color: #fff;
+  color: var(--text-main);
 }
 
 .modal-body {
@@ -807,12 +808,12 @@ export default {
 
 .form-control {
   width: 100%;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 14px;
-  color: #fff;
+  color: var(--text-main);
   font-family: inherit;
   outline: none;
   transition: all 0.2s;
@@ -820,8 +821,7 @@ export default {
 
 .form-control:focus {
   border-color: var(--color-accent);
-  background: rgba(0, 240, 255, 0.04);
-  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.15);
+  box-shadow: 0 0 0 2px var(--color-accent-dim);
 }
 
 .help-text {
@@ -836,7 +836,7 @@ export default {
 }
 
 .delete-warning strong {
-  color: #fff;
+  color: var(--text-main);
 }
 
 .modal-footer {

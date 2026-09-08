@@ -236,7 +236,7 @@ export default {
 
 /* Welcome Banner */
 .welcome-banner {
-  background: linear-gradient(135deg, rgba(19, 25, 41, 0.9) 0%, rgba(14, 19, 31, 0.9) 100%);
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-surface) 100%);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 32px;
@@ -246,6 +246,7 @@ export default {
   gap: 24px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .welcome-banner::before {
@@ -263,7 +264,7 @@ export default {
   font-size: 1.6rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .banner-content p {
@@ -293,11 +294,12 @@ export default {
   padding: 22px;
   cursor: pointer;
   transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .metric-card:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-glow);
   transform: translateY(-2px);
 }
 
@@ -308,19 +310,34 @@ export default {
   margin-bottom: 12px;
 }
 
-.metric-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
 .metric-icon {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.metric-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.metric-sub {
+  font-size: 0.76rem;
+  color: var(--text-dim);
 }
 
 .icon-cyan { background: rgba(0, 240, 255, 0.1); color: var(--color-accent); }
@@ -329,30 +346,18 @@ export default {
 .icon-yellow { background: rgba(245, 158, 11, 0.1); color: var(--status-duplicate); }
 .icon-red { background: rgba(239, 68, 68, 0.1); color: var(--status-error); }
 
-.metric-value {
-  font-size: 2.1rem;
-  font-weight: 800;
-  line-height: 1;
-  margin-bottom: 8px;
-  letter-spacing: -1px;
-}
-
 .text-blue { color: var(--status-new); }
 .text-green { color: var(--status-posted); }
 .text-yellow { color: var(--status-duplicate); }
 .text-red { color: var(--status-error); }
 
-.metric-footer {
-  font-size: 0.75rem;
-  color: var(--text-dim);
-}
-
-/* Sections */
-.section-card {
+/* Dashboard Sections */
+.dashboard-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 26px;
+  padding: 24px;
+  box-shadow: var(--shadow-card);
 }
 
 .section-header {
@@ -365,7 +370,7 @@ export default {
 .section-header h2 {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .section-desc {
@@ -383,7 +388,7 @@ export default {
 
 .src-mini-card {
   background: var(--bg-surface);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 14px;
 }
@@ -406,7 +411,7 @@ export default {
 .src-name {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-main);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -450,15 +455,15 @@ export default {
   align-items: center;
   gap: 16px;
   background: var(--bg-surface);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
   padding: 14px 18px;
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
 }
 
 .recent-item:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--border-glow);
+  background: var(--bg-card-hover);
 }
 
 .item-info {

@@ -48,6 +48,8 @@ ai_writer/
 │   └── cron.php          # Crontab üçün avtomatik dövri tapşırıq skripti
 │
 └── manager/              # Vue 3 + Vite əsaslı müasir İdarəetmə Paneli (UI)
+    ├── .env
+    ├── .env.example
     ├── package.json
     ├── vite.config.js
     ├── index.html

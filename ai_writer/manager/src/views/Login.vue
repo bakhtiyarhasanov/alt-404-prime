@@ -3,6 +3,29 @@
     <div class="glow-orb orb-1"></div>
     <div class="glow-orb orb-2"></div>
 
+    <!-- Theme Toggle at top right -->
+    <button 
+      @click="toggleTheme" 
+      class="login-theme-btn" 
+      :title="currentTheme === 'light' ? 'Tünd rejimə keç' : 'Açıq rejimə keç'"
+      aria-label="Rejim dəyiş"
+    >
+      <svg v-if="currentTheme === 'dark'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+
     <div class="login-card">
       <div class="brand-header">
         <div class="brand-badge-icon">
@@ -131,6 +154,15 @@ export default {
     const route = useRoute()
     const authStore = useAuthStore()
 
+    const currentTheme = ref(localStorage.getItem('ai-writer-theme') || 'dark')
+    const toggleTheme = () => {
+      currentTheme.value = currentTheme.value === 'light' ? 'dark' : 'light'
+      localStorage.setItem('ai-writer-theme', currentTheme.value)
+      document.documentElement.classList.remove('theme-dark', 'theme-light')
+      document.documentElement.classList.add(`theme-${currentTheme.value}`)
+      document.documentElement.setAttribute('data-theme', currentTheme.value)
+    }
+
     const handleSubmit = async () => {
       if (!username.value || !password.value) return
 
@@ -146,6 +178,8 @@ export default {
       password,
       showPassword,
       authStore,
+      currentTheme,
+      toggleTheme,
       handleSubmit
     }
   }
@@ -162,6 +196,31 @@ export default {
   position: relative;
   overflow: hidden;
   padding: 24px;
+  transition: background-color 0.25s ease;
+}
+
+.login-theme-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 30;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.login-theme-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-glow);
 }
 
 .glow-orb {
@@ -184,8 +243,8 @@ export default {
   width: 400px;
   height: 400px;
   background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
-  bottom: -100px;
-  right: -100px;
+  bottom: -80px;
+  right: -80px;
 }
 
 .login-card {
@@ -197,7 +256,7 @@ export default {
   padding: 40px 32px;
   position: relative;
   z-index: 10;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .brand-header {
@@ -222,7 +281,7 @@ export default {
 .brand-heading {
   font-size: 24px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-main);
   letter-spacing: -0.02em;
 }
 
@@ -307,7 +366,7 @@ export default {
 
 .input-wrapper input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 12px 42px 12px 42px;

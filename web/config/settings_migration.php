@@ -1,4 +1,4 @@
-<?php
+w<?php
 /**
  * Settings Migration Script
  * Run this to create settings table and populate it with initial data.

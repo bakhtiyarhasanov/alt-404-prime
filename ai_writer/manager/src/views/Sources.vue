@@ -206,7 +206,7 @@ export default {
 .page-header h1 {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .page-desc {
@@ -231,10 +231,11 @@ export default {
   flex-direction: column;
   gap: 16px;
   transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .source-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-glow);
   background: var(--bg-card-hover);
 }
 
@@ -270,7 +271,7 @@ export default {
 .source-names h3 {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
   line-height: 1.3;
 }
 
@@ -336,7 +337,7 @@ export default {
 .stat-val {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
   margin-top: 2px;
 }
 
@@ -347,7 +348,8 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(7, 9, 14, 0.4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   padding: 14px;
   border-radius: var(--radius-sm);
 }
@@ -374,11 +376,15 @@ export default {
 .toggle-slider {
   width: 36px;
   height: 20px;
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 99px;
   position: relative;
   transition: all 0.2s ease;
   flex-shrink: 0;
+}
+
+.theme-dark .toggle-slider {
+  background: #334155;
 }
 
 .toggle-slider::after {
@@ -424,9 +430,9 @@ export default {
 
 .input-minutes {
   width: 60px;
-  background: var(--bg-surface);
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  color: #fff;
+  color: var(--text-main);
   padding: 5px 8px;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -455,9 +461,9 @@ export default {
 }
 
 .select-category {
-  background: var(--bg-surface);
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  color: #fff;
+  color: var(--text-main);
   padding: 5px 10px;
   border-radius: 6px;
   font-size: 0.82rem;
@@ -470,7 +476,7 @@ export default {
   justify-content: space-between;
   margin-top: auto;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .status-pill {

@@ -126,7 +126,7 @@ ON DUPLICATE KEY UPDATE
 -- ===========================================================================
 INSERT INTO `settings` (`setting_key`, `setting_value`, `description`) VALUES
   ('openai_api_key', '', 'OpenAI API Secret Key for Azerbaijani news rewriting'),
-  ('openai_model', 'gpt-4o-mini', 'OpenAI model: gpt-4o-mini, gpt-4o, gpt-4-turbo'),
+  ('openai_model', 'gpt-4o-mini', 'OpenAI model: gpt-5.6-sol, gpt-4o-mini, gpt-4o, chatgpt-4o-latest, o3-mini, o1, gpt-4-turbo və s.'),
   ('duplicate_check_enabled', '1', '1 = Check and mark duplicates automatically, 0 = Disabled'),
   ('duplicate_threshold', '0.70', 'Similarity threshold for duplicate title matching (0.0 to 1.0)'),
   ('auto_publish_draft', '1', '1 = Automatically insert into web articles table as draft (published = 0)'),

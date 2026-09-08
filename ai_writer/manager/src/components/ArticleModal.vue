@@ -331,7 +331,7 @@ export default {
 .header-titles h2 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
   line-height: 1.35;
 }
 
@@ -344,8 +344,8 @@ export default {
   border-radius: 6px;
 }
 .btn-close:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  background: var(--btn-secondary-hover);
 }
 
 /* Body */
@@ -441,7 +441,7 @@ export default {
   font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.4;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .text-gold {
@@ -451,7 +451,7 @@ export default {
 .panel-excerpt {
   font-size: 0.88rem;
   color: var(--text-muted);
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--btn-secondary-bg);
   padding: 10px;
   border-radius: 6px;
   border-left: 3px solid #3b82f6;
@@ -470,8 +470,9 @@ export default {
 
 .tag-pill {
   font-size: 0.72rem;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
   padding: 3px 8px;
   border-radius: 99px;
 }
@@ -488,7 +489,7 @@ export default {
 }
 
 .rewritten-html {
-  color: #e2e8f0;
+  color: var(--text-main);
 }
 
 .not-rewritten-placeholder {
@@ -508,7 +509,7 @@ export default {
 .not-rewritten-placeholder h4 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-main);
 }
 
 .not-rewritten-placeholder p {

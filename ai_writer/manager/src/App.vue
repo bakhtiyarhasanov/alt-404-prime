@@ -70,6 +70,30 @@
         </nav>
 
         <div class="header-actions">
+          <!-- Theme Toggle Button -->
+          <button 
+            @click="toggleTheme" 
+            class="btn-theme-toggle" 
+            :title="currentTheme === 'light' ? 'Tünd rejimə keç' : 'Açıq rejimə keç'"
+            aria-label="Rejim dəyiş"
+          >
+            <svg v-if="currentTheme === 'dark'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <span class="theme-text">{{ currentTheme === 'light' ? 'Tünd' : 'Açıq' }}</span>
+          </button>
+
           <button @click="store.grabAllSources()" :disabled="store.loading" class="btn btn-secondary btn-sm" title="Bütün mənbələrdən xəbərləri topla">
             <svg class="spin-on-load" :class="{ spinning: store.loading }" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -127,7 +151,7 @@
 </template>
 
 <script>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAiWriterStore } from './stores/aiWriter'
 import { useAuthStore } from './stores/auth'
 
@@ -136,8 +160,25 @@ export default {
   setup() {
     const store = useAiWriterStore()
     const authStore = useAuthStore()
+    const currentTheme = ref('dark')
+
+    const applyTheme = (theme) => {
+      document.documentElement.classList.remove('theme-dark', 'theme-light')
+      document.documentElement.classList.add(`theme-${theme}`)
+      document.documentElement.setAttribute('data-theme', theme)
+    }
+
+    const toggleTheme = () => {
+      currentTheme.value = currentTheme.value === 'light' ? 'dark' : 'light'
+      localStorage.setItem('ai-writer-theme', currentTheme.value)
+      applyTheme(currentTheme.value)
+    }
 
     onMounted(() => {
+      const savedTheme = localStorage.getItem('ai-writer-theme') || 'dark'
+      currentTheme.value = savedTheme
+      applyTheme(savedTheme)
+
       if (authStore.isAuthenticated) {
         store.fetchStats()
       }
@@ -149,14 +190,14 @@ export default {
       }, 45000)
     })
 
-    return { store, authStore }
+    return { store, authStore, currentTheme, toggleTheme }
   }
 }
 </script>
 
 <style>
 /* Modern CSS Reset & Theme Tokens */
-:root {
+:root, :root.theme-dark {
   --bg-dark: #07090e;
   --bg-surface: #0e131f;
   --bg-card: #131929;
@@ -185,6 +226,54 @@ export default {
   --radius-full: 9999px;
   
   --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --bg-header: rgba(14, 19, 31, 0.85);
+  --brand-gradient: linear-gradient(90deg, #FFFFFF, var(--color-primary));
+  --nav-bg: rgba(7, 9, 14, 0.6);
+  --nav-border: rgba(255, 255, 255, 0.05);
+  --nav-hover-bg: rgba(255, 255, 255, 0.04);
+  --btn-secondary-bg: rgba(255, 255, 255, 0.06);
+  --btn-secondary-hover: rgba(255, 255, 255, 0.1);
+  --user-session-bg: rgba(255, 255, 255, 0.04);
+  --shadow-dropdown: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+:root.theme-light {
+  --bg-dark: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --border-subtle: #e2e8f0;
+  --border-glow: rgba(14, 165, 233, 0.25);
+  
+  --color-primary: #f59e0b;
+  --color-primary-hover: #d97706;
+  --color-accent: #0284c7;
+  --color-accent-dim: rgba(2, 132, 199, 0.1);
+  
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+  
+  --status-new: #0284c7;
+  --status-posted: #059669;
+  --status-duplicate: #d97706;
+  --status-error: #dc2626;
+  --status-generating: #9333ea;
+
+  --bg-header: rgba(255, 255, 255, 0.92);
+  --brand-gradient: linear-gradient(90deg, #0f172a, #d97706);
+  --nav-bg: #e2e8f0;
+  --nav-border: #cbd5e1;
+  --nav-hover-bg: rgba(0, 0, 0, 0.05);
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-hover: #f1f5f9;
+  --user-session-bg: rgba(0, 0, 0, 0.04);
+  --shadow-dropdown: 0 10px 25px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 * {
@@ -199,6 +288,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 .app-wrapper {
@@ -209,13 +299,14 @@ body {
 
 /* Header */
 .app-header {
-  background: rgba(14, 19, 31, 0.85);
+  background: var(--bg-header);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
   z-index: 50;
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .header-inner {
@@ -252,7 +343,7 @@ body {
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.5px;
-  background: linear-gradient(90deg, #FFFFFF, var(--color-primary));
+  background: var(--brand-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -270,10 +361,11 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(7, 9, 14, 0.6);
+  background: var(--nav-bg);
   padding: 5px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--nav-border);
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .nav-item {
@@ -291,8 +383,8 @@ body {
 }
 
 .nav-item:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+  background: var(--nav-hover-bg);
 }
 
 .nav-item.active {
@@ -320,6 +412,38 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* Theme Toggle Button */
+.btn-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border-radius: var(--radius-md);
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-theme-toggle:hover {
+  background: var(--btn-secondary-hover);
+  border-color: var(--border-glow);
+  transform: translateY(-1px);
+}
+
+.btn-theme-toggle svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.theme-text {
+  font-size: 0.78rem;
 }
 
 /* Buttons */
@@ -351,27 +475,27 @@ body {
 .btn-primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(252, 219, 86, 0.25);
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--btn-secondary-bg);
   border: 1px solid var(--border-subtle);
   color: var(--text-main);
 }
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--btn-secondary-hover);
+  border-color: var(--border-glow);
 }
 
 .btn-cyan {
   background: var(--color-accent-dim);
-  border: 1px solid rgba(0, 240, 255, 0.3);
+  border: 1px solid rgba(2, 132, 199, 0.3);
   color: var(--color-accent);
 }
 .btn-cyan:hover:not(:disabled) {
-  background: rgba(0, 240, 255, 0.2);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+  background: rgba(2, 132, 199, 0.2);
+  box-shadow: 0 0 15px rgba(2, 132, 199, 0.25);
 }
 
 .btn:disabled {
@@ -409,10 +533,11 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-dropdown);
   z-index: 100;
   max-width: 420px;
   font-size: 0.88rem;
+  color: var(--text-main);
 }
 
 .toast-success {
@@ -439,7 +564,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 4px 12px 4px 6px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--user-session-bg);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
 }
@@ -469,8 +594,8 @@ body {
   color: var(--text-muted);
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+  background: rgba(125, 125, 125, 0.1);
+  color: var(--text-main);
 }
 
 .btn-logout {

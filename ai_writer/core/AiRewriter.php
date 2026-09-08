@@ -96,15 +96,36 @@ class AiRewriter {
                 . "- Sonda xəbəri yazarkən istifadə etdiyin bütün mənbələri göstərilən formatda qeyd et (maksimum 5 mənbə).\n"
                 . "- Yalnız valid JSON qaytar, əlavə izahat mətni və ya ```json kod bloku yazma.";
 
+        $isReasoning = (bool)preg_match('/^(o1|o3)/i', $model);
+
         $payload = [
             'model' => $model,
-            'messages' => [
+        ];
+
+        if ($isReasoning) {
+            // Reasoning models (o1, o3-mini, etc.) do not support temperature (OpenAI returns 400 error)
+            // Early reasoning models (o1-mini, o1-preview) do not support system or developer roles, nor response_format
+            if (preg_match('/^(o1-mini|o1-preview)/i', $model)) {
+                $payload['messages'] = [
+                    ['role' => 'user', 'content' => $systemPrompt . "\n\n" . $prompt]
+                ];
+            } else {
+                // o1 and o3-mini support developer role and response_format
+                $payload['messages'] = [
+                    ['role' => 'developer', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $prompt]
+                ];
+                $payload['response_format'] = ['type' => 'json_object'];
+            }
+        } else {
+            // Standard models (gpt-4o, gpt-4-turbo, gpt-3.5-turbo, etc.)
+            $payload['messages'] = [
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $prompt]
-            ],
-            'temperature' => $temperature,
-            'response_format' => ['type' => 'json_object']
-        ];
+            ];
+            $payload['temperature'] = $temperature;
+            $payload['response_format'] = ['type' => 'json_object'];
+        }
 
         $ch = curl_init('https://api.openai.com/v1/chat/completions');
         curl_setopt_array($ch, [
@@ -142,6 +163,12 @@ class AiRewriter {
         $contentClean = preg_replace('/\s*```$/', '', $contentClean);
 
         $parsed = json_decode($contentClean, true);
+        if (!$parsed) {
+            // Fallback: extract substring between first { and last }
+            if (preg_match('/\{[\s\S]*\}/', $contentRaw, $m)) {
+                $parsed = json_decode($m[0], true);
+            }
+        }
         if (!$parsed || empty($parsed['title']) || empty($parsed['content'])) {
             throw new Exception("OpenAI cavabı gözlənilən JSON formatında olmadı: " . mb_substr($contentRaw, 0, 150));
         }
