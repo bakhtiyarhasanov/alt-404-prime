@@ -16,7 +16,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/ai_writer/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
         rewrite: (path) => {
           // If query string starts right after /ai_writer/api
@@ -25,7 +25,7 @@ export default defineConfig({
         }
       },
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
         rewrite: (path) => {
           if (path.includes('index.php')) return path;
