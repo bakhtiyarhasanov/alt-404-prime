@@ -378,7 +378,10 @@ try {
             $stmt = $db->query("
                 SELECT s.*, 
                     (SELECT COUNT(*) FROM grabbed_news WHERE source_id = s.id) as total_news,
-                    (SELECT COUNT(*) FROM grabbed_news WHERE source_id = s.id AND status = 'posted') as posted_news
+                    (SELECT COUNT(*) FROM grabbed_news WHERE source_id = s.id AND status = 'posted') as posted_news,
+                    (SELECT news_collected FROM grab_history WHERE source_id = s.id ORDER BY run_time DESC, id DESC LIMIT 1) as last_run_collected,
+                    (SELECT news_added FROM grab_history WHERE source_id = s.id ORDER BY run_time DESC, id DESC LIMIT 1) as last_run_added,
+                    (SELECT duration_seconds FROM grab_history WHERE source_id = s.id ORDER BY run_time DESC, id DESC LIMIT 1) as last_run_duration
                 FROM sources s 
                 ORDER BY s.is_enabled DESC, s.name ASC
             ");
@@ -387,6 +390,9 @@ try {
                 $src['is_enabled'] = (bool)$src['is_enabled'];
                 $src['rewrite_enabled'] = (bool)$src['rewrite_enabled'];
                 $src['retry_interval_minutes'] = (int)$src['retry_interval_minutes'];
+                $src['last_run_collected'] = $src['last_run_collected'] !== null ? (int)$src['last_run_collected'] : null;
+                $src['last_run_added'] = $src['last_run_added'] !== null ? (int)$src['last_run_added'] : null;
+                $src['last_run_duration'] = $src['last_run_duration'] !== null ? (float)$src['last_run_duration'] : null;
             }
             jsonOut(['success' => true, 'sources' => $sources]);
         }
@@ -427,8 +433,12 @@ try {
             if ($action === 'grab') {
                 $id = $_GET['id'] ?? $input['id'] ?? '';
                 if (!$id) jsonErr("Source ID required");
-                $res = $manager->runSource($id, true);
-                jsonOut(['success' => true, 'result' => $res]);
+                try {
+                    $res = $manager->runSource($id, true);
+                    jsonOut(['success' => true, 'result' => $res]);
+                } catch (Throwable $e) {
+                    jsonErr($e->getMessage(), 400);
+                }
             }
 
             if ($action === 'grab-all') {
@@ -436,6 +446,28 @@ try {
                 jsonOut(['success' => true, 'results' => $res]);
             }
         }
+    }
+
+    // ------------------------------------------------------------------------
+    // 2.5 GRAB HISTORY ENDPOINT
+    // ------------------------------------------------------------------------
+    if ($endpoint === 'history' || $endpoint === 'grab-history') {
+        $sourceId = $_GET['source_id'] ?? 'all';
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = max(1, min(100, (int)($_GET['limit'] ?? 25)));
+
+        $historyData = $manager->getGrabHistory($sourceId, $limit, $page);
+        $statsData = $manager->getGrabHistoryStats();
+
+        jsonOut([
+            'success' => true,
+            'items' => $historyData['items'],
+            'total' => $historyData['total'],
+            'page' => $historyData['page'],
+            'limit' => $historyData['limit'],
+            'total_pages' => $historyData['total_pages'],
+            'stats' => $statsData
+        ]);
     }
 
     // ------------------------------------------------------------------------

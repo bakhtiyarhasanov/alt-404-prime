@@ -12,6 +12,46 @@ abstract class BaseGrabber implements GrabberInterface {
     protected int $timeout = 15;
     protected string $userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
+    protected int $lastHttpCode = 0;
+    protected ?string $lastError = null;
+    protected bool $lastIsCloudflare = false;
+
+    protected int $mainHttpCode = 0;
+    protected ?string $mainError = null;
+    protected bool $mainIsCloudflare = false;
+
+    /**
+     * Reset grab state before running
+     */
+    public function resetGrabState(): void {
+        $this->lastHttpCode = 0;
+        $this->lastError = null;
+        $this->lastIsCloudflare = false;
+        $this->mainHttpCode = 0;
+        $this->mainError = null;
+        $this->mainIsCloudflare = false;
+    }
+
+    public function getLastHttpCode(): int {
+        return $this->lastHttpCode;
+    }
+
+    public function getLastError(): ?string {
+        return $this->lastError;
+    }
+
+    public function getMainHttpCode(): int {
+        return $this->mainHttpCode;
+    }
+
+    public function getMainError(): ?string {
+        return $this->mainError;
+    }
+
+    public function isCloudflareBlocked(): bool {
+        return $this->mainIsCloudflare || $this->lastIsCloudflare;
+    }
+
     /**
      * Get configured source URL from database or default URL
      */
@@ -31,23 +71,34 @@ abstract class BaseGrabber implements GrabberInterface {
     }
 
     /**
-     * Perform HTTP GET request with realistic headers
+     * Perform HTTP GET request with realistic headers, cookies and Cloudflare handling
      */
     protected function fetchUrl(string $url, array $customHeaders = []): ?string {
         $ch = curl_init();
-        $headers = array_merge([
-            'User-Agent: ' . $this->userAgent,
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language: az,tr,en-US,en;q=0.9',
-            'Cache-Control: no-cache',
-            'Pragma: no-cache',
-            'Connection: keep-alive',
-            'Upgrade-Insecure-Requests: 1',
-        ], $customHeaders);
+        $cookieFile = sys_get_temp_dir() . '/aiwriter_cookies_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $this->getId()) . '.txt';
 
-        curl_setopt_array($ch, [
+        $defaultHeaders = [
+            'User-Agent: ' . $this->userAgent,
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language: az,tr-TR;q=0.9,tr;q=0.8,en-US;q=0.7,en;q=0.6',
+            'Accept-Encoding: gzip, deflate',
+            'sec-ch-ua: "Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+            'sec-ch-ua-mobile: ?0',
+            'sec-ch-ua-platform: "macOS"',
+            'sec-fetch-dest: document',
+            'sec-fetch-mode: navigate',
+            'sec-fetch-site: none',
+            'sec-fetch-user: ?1',
+            'Upgrade-Insecure-Requests: 1',
+            'Cache-Control: max-age=0',
+        ];
+
+        $headers = array_merge($defaultHeaders, $customHeaders);
+
+        $curlOptions = [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 5,
             CURLOPT_TIMEOUT => $this->timeout,
@@ -55,16 +106,134 @@ abstract class BaseGrabber implements GrabberInterface {
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_ENCODING => 'gzip,deflate',
-        ]);
+            CURLOPT_COOKIEJAR => $cookieFile,
+            CURLOPT_COOKIEFILE => $cookieFile,
+        ];
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        try {
+            $proxy = Database::getSetting('grabber_proxy', '');
+            if (!empty($proxy)) {
+                $curlOptions[CURLOPT_PROXY] = $proxy;
+            }
+        } catch (\Throwable $e) {}
 
-        if ($response === false || $httpCode >= 400) {
+        curl_setopt_array($ch, $curlOptions);
+
+        $rawResponse = curl_exec($ch);
+        $curlErr = curl_error($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        @curl_close($ch);
+
+        $this->lastHttpCode = $httpCode;
+        if ($this->mainHttpCode === 0) {
+            $this->mainHttpCode = $httpCode;
+        }
+
+        if ($rawResponse === false) {
+            $this->lastError = "Bağlantı xətası: " . ($curlErr ?: 'Serverə qoşulmaq mümkün olmadı');
+            if ($this->mainError === null) {
+                $this->mainError = $this->lastError;
+            }
             return null;
         }
 
-        return $response;
+        $headerText = substr($rawResponse, 0, $headerSize);
+        $body = substr($rawResponse, $headerSize);
+
+        // Detect Cloudflare
+        $isCloudflare = (
+            stripos($headerText, 'server: cloudflare') !== false ||
+            stripos($headerText, 'cf-mitigated: challenge') !== false ||
+            stripos($headerText, 'cf-ray:') !== false ||
+            stripos($body, 'challenges.cloudflare.com') !== false ||
+            stripos($body, 'Attention Required! | Cloudflare') !== false ||
+            stripos($body, 'Just a moment...') !== false ||
+            stripos($body, 'cf-turnstile') !== false
+        );
+
+        $isCfChallenge = $isCloudflare && (
+            $httpCode === 403 || 
+            $httpCode === 503 || 
+            stripos($body, 'Just a moment...') !== false || 
+            stripos($headerText, 'cf-mitigated: challenge') !== false ||
+            stripos($body, 'challenges.cloudflare.com') !== false
+        );
+
+        if ($isCfChallenge) {
+            $this->lastIsCloudflare = true;
+            if ($this->mainHttpCode === $httpCode || $this->mainHttpCode === 0) {
+                $this->mainIsCloudflare = true;
+            }
+
+            // Attempt FlareSolverr fallback if configured
+            try {
+                $flaresolverrUrl = Database::getSetting('flaresolverr_url', '');
+                if (!empty($flaresolverrUrl)) {
+                    $solvedBody = $this->fetchWithFlareSolverr($flaresolverrUrl, $url);
+                    if ($solvedBody) {
+                        $this->lastHttpCode = 200;
+                        $this->lastError = null;
+                        $this->lastIsCloudflare = false;
+                        if ($this->mainHttpCode === $httpCode) {
+                            $this->mainHttpCode = 200;
+                            $this->mainError = null;
+                            $this->mainIsCloudflare = false;
+                        }
+                        return $solvedBody;
+                    }
+                }
+            } catch (\Throwable $e) {}
+
+            $this->lastError = "Cloudflare mühafizəsi aktivdir (HTTP {$httpCode} / Bot Challenge)";
+            if ($this->mainError === null) {
+                $this->mainError = $this->lastError;
+            }
+            return null;
+        }
+
+        if ($httpCode !== 200) {
+            $this->lastError = "HTTP {$httpCode} xətası qayıtdı (200 gözlənilirdi)";
+            if ($this->mainError === null) {
+                $this->mainError = $this->lastError;
+            }
+            return null;
+        }
+
+        $this->lastError = null;
+        return $body;
+    }
+
+    /**
+     * Optional FlareSolverr request to solve Cloudflare challenge
+     */
+    protected function fetchWithFlareSolverr(string $flareUrl, string $targetUrl): ?string {
+        $ch = curl_init(rtrim($flareUrl, '/') . '/v1');
+        $payload = json_encode([
+            'cmd' => 'request.get',
+            'url' => $targetUrl,
+            'maxTimeout' => 60000
+        ]);
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 65,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false
+        ]);
+
+        $res = curl_exec($ch);
+        @curl_close($ch);
+
+        if (!$res) return null;
+        $data = json_decode($res, true);
+        if (($data['status'] ?? '') === 'ok' && !empty($data['solution']['response'])) {
+            return $data['solution']['response'];
+        }
+        return null;
     }
 
     /**

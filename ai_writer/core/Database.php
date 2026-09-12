@@ -147,6 +147,54 @@ class Database {
             ");
         }
 
+        // Ensure grab_history table exists
+        try {
+            $checkHistory = self::$aiPdo->query("SHOW TABLES LIKE 'grab_history'")->fetch();
+            if (!$checkHistory) {
+                self::$aiPdo->exec("
+                    CREATE TABLE IF NOT EXISTS `grab_history` (
+                      `id` INT AUTO_INCREMENT NOT NULL,
+                      `source_id` VARCHAR(50) NOT NULL,
+                      `run_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                      `duration_seconds` DECIMAL(6, 2) DEFAULT 0.00,
+                      `news_collected` INT NOT NULL DEFAULT 0,
+                      `news_added` INT NOT NULL DEFAULT 0,
+                      `duplicate_count` INT NOT NULL DEFAULT 0,
+                      `error_count` INT NOT NULL DEFAULT 0,
+                      `status` ENUM('success', 'error', 'skipped') NOT NULL DEFAULT 'success',
+                      `error_message` TEXT DEFAULT NULL,
+                      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                      PRIMARY KEY (`id`),
+                      KEY `idx_history_source` (`source_id`),
+                      KEY `idx_history_runtime` (`run_time` DESC)
+                    ) ENGINE=InnoDB;
+                ");
+            }
+        } catch (\Throwable $e) {
+            // Ignore if already created or schema error
+        }
+
+        // Ensure sources table has last_news_grabbed_at column
+        try {
+            $colCheck = self::$aiPdo->query("SHOW COLUMNS FROM `sources` LIKE 'last_news_grabbed_at'")->fetch();
+            if (!$colCheck) {
+                self::$aiPdo->exec("ALTER TABLE `sources` ADD COLUMN `last_news_grabbed_at` DATETIME DEFAULT NULL AFTER `last_grabbed_at`");
+                
+                // Backfill last_news_grabbed_at from latest existing news per source
+                self::$aiPdo->exec("
+                    UPDATE sources s 
+                    SET s.last_news_grabbed_at = (
+                        SELECT MAX(n.created_at) 
+                        FROM grabbed_news n 
+                        WHERE n.source_id = s.id
+                    )
+                    WHERE s.last_news_grabbed_at IS NULL
+                ");
+            }
+        } catch (\Throwable $e) {
+            // Ignore column check failure if sources table is not ready
+        }
+
         // Check if there is at least one admin user, seed default if empty
         $userCount = (int)self::$aiPdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
         if ($userCount === 0) {

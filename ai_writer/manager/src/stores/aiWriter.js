@@ -30,7 +30,22 @@ export const useAiWriterStore = defineStore('aiWriter', {
     processingId: null,
     grabbingSourceId: null,
     activeArticle: null,
-    toast: null
+    toast: null,
+    // Grab History state
+    grabHistory: [],
+    grabHistoryTotal: 0,
+    grabHistoryPage: 1,
+    grabHistoryTotalPages: 1,
+    grabHistoryLimit: 20,
+    grabHistoryStats: {
+      total_runs: 0,
+      total_collected: 0,
+      total_added: 0,
+      total_duplicates: 0,
+      last_run_time: null
+    },
+    grabHistoryLoading: false,
+    grabHistoryFilter: 'all'
   }),
 
   actions: {
@@ -68,6 +83,35 @@ export const useAiWriterStore = defineStore('aiWriter', {
       }
     },
 
+    async fetchGrabHistory(page = 1, sourceId = null) {
+      if (sourceId !== null) {
+        this.grabHistoryFilter = sourceId
+      }
+      this.grabHistoryPage = page
+      this.grabHistoryLoading = true
+      try {
+        const params = new URLSearchParams({
+          endpoint: 'history',
+          page: this.grabHistoryPage,
+          limit: this.grabHistoryLimit,
+          source_id: this.grabHistoryFilter
+        })
+        const res = await api.get(`?${params.toString()}`)
+        if (res.data.success) {
+          this.grabHistory = res.data.items || []
+          this.grabHistoryTotal = res.data.total || 0
+          this.grabHistoryTotalPages = res.data.total_pages || 1
+          if (res.data.stats) {
+            this.grabHistoryStats = res.data.stats
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch grab history:', e)
+      } finally {
+        this.grabHistoryLoading = false
+      }
+    },
+
     async updateSource(id, updates) {
       try {
         const res = await api.post(`?endpoint=sources&action=update&id=${id}`, updates)
@@ -87,15 +131,19 @@ export const useAiWriterStore = defineStore('aiWriter', {
         const res = await api.post(`?endpoint=sources&action=grab&id=${id}`)
         if (res.data.success) {
           const r = res.data.result
-          this.showToast(`${r.source_name || id}: ${r.new_items || 0} yeni xəbər tapıldı (${r.duplicates || 0} təkrar)`, 'success')
-          await this.fetchSources()
-          await this.fetchStats()
-          await this.fetchNews()
+          const added = r.news_added !== undefined ? r.news_added : (r.new_items || 0)
+          const collected = r.news_collected !== undefined ? r.news_collected : (r.total_fetched || 0)
+          this.showToast(`${r.source_name || id}: ${collected} xəbər toplandı, ${added} yeni DB-yə əlavə edildi`, 'success')
         }
       } catch (e) {
-        this.showToast('Grab xətası: ' + (e.response?.data?.error || e.message), 'error')
+        const errMsg = e.response?.data?.error || e.message || 'Xəta baş verdi'
+        this.showToast('Grab xətası: ' + errMsg, 'error')
       } finally {
         this.grabbingSourceId = null
+        await this.fetchSources()
+        await this.fetchStats()
+        await this.fetchNews()
+        await this.fetchGrabHistory(1)
       }
     },
 
@@ -104,15 +152,27 @@ export const useAiWriterStore = defineStore('aiWriter', {
       try {
         const res = await api.post('?endpoint=sources&action=grab-all')
         if (res.data.success) {
-          this.showToast('Bütün aktiv mənbələrdən xəbərlər toplandı!', 'success')
-          await this.fetchSources()
-          await this.fetchStats()
-          await this.fetchNews()
+          const results = res.data.results || {}
+          let totalErr = 0
+          let totalSuccess = 0
+          for (const key in results) {
+            if (results[key].status === 'error') totalErr++
+            else if (results[key].status !== 'skipped') totalSuccess++
+          }
+          if (totalErr > 0) {
+            this.showToast(`Toplama: ${totalSuccess} uğurlu, ${totalErr} xətalı mənbə`, 'error')
+          } else {
+            this.showToast('Bütün aktiv mənbələrdən xəbərlər toplandı!', 'success')
+          }
         }
       } catch (e) {
         this.showToast('Toplama xətası: ' + (e.response?.data?.error || e.message), 'error')
       } finally {
         this.loading = false
+        await this.fetchSources()
+        await this.fetchStats()
+        await this.fetchNews()
+        await this.fetchGrabHistory(1)
       }
     },
 

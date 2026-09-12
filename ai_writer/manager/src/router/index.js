@@ -27,6 +27,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/history',
+    name: 'GrabHistory',
+    component: () => import('../views/GrabHistory.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/news',
     name: 'NewsFeed',
     component: NewsFeed,

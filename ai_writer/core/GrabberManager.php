@@ -89,12 +89,41 @@ class GrabberManager {
         $insertedCount = 0;
         $duplicateCount = 0;
         $errorCount = 0;
+        $startTime = microtime(true);
+        $runTime = date('Y-m-d H:i:s');
 
         try {
             // Update source status to running
             $this->aiDb->prepare("UPDATE sources SET last_status = 'running' WHERE id = :id")->execute(['id' => $sourceId]);
 
+            // Reset grab state for fresh tracking
+            if ($grabber instanceof BaseGrabber) {
+                $grabber->resetGrabState();
+            }
+
             $grabbedItems = $grabber->grab();
+            $totalFetched = count($grabbedItems);
+
+            // Validate HTTP response code, Cloudflare, and fetched news items
+            $httpCode = ($grabber instanceof BaseGrabber) ? $grabber->getMainHttpCode() : 200;
+            $httpErr = ($grabber instanceof BaseGrabber) ? $grabber->getMainError() : null;
+            $isCf = ($grabber instanceof BaseGrabber) && $grabber->isCloudflareBlocked();
+
+            if ($isCf) {
+                throw new Exception($httpErr ?: "Cloudflare mühafizəsi aktivdir (HTTP {$httpCode} / Bot Challenge). Mənbə xəbər vermədi.");
+            }
+
+            if ($httpCode !== 0 && $httpCode !== 200) {
+                throw new Exception("HTTP {$httpCode} statusu qayıtdı (200 gözlənilirdi). Mənbə ilə əlaqə qurulmadı.");
+            }
+
+            if ($httpErr !== null && $totalFetched === 0) {
+                throw new Exception($httpErr);
+            }
+
+            if ($totalFetched === 0) {
+                throw new Exception("Mənbənin cavabında heç bir xəbər tapılmadı (0 xəbər toplandı).");
+            }
 
             foreach ($grabbedItems as $item) {
                 $extId = $item['external_id'] ?? md5($item['url']);
@@ -154,14 +183,47 @@ class GrabberManager {
                 ]);
             }
 
-            // Update source status to success
-            $this->aiDb->prepare("
+            $duration = round(microtime(true) - $startTime, 2);
+
+            // Update source status to success and record last_grabbed_at & last_news_grabbed_at
+            $updateSql = "
                 UPDATE sources 
-                SET last_grabbed_at = NOW(), last_status = 'idle', last_error = NULL 
+                SET last_grabbed_at = NOW(), 
+                    last_status = 'idle', 
+                    last_error = NULL" . 
+                ($insertedCount > 0 || $totalFetched > 0 ? ", last_news_grabbed_at = NOW()" : "") . "
                 WHERE id = :id
-            ")->execute(['id' => $sourceId]);
+            ";
+            $this->aiDb->prepare($updateSql)->execute([
+                'id' => $sourceId
+            ]);
+
+            // Save run record in grab_history
+            try {
+                $histStmt = $this->aiDb->prepare("
+                    INSERT INTO grab_history (
+                        source_id, run_time, duration_seconds, news_collected, 
+                        news_added, duplicate_count, error_count, status, error_message
+                    ) VALUES (
+                        :source_id, :run_time, :duration, :news_collected, 
+                        :news_added, :duplicate_count, :error_count, 'success', NULL
+                    )
+                ");
+                $histStmt->execute([
+                    'source_id' => $sourceId,
+                    'run_time' => $runTime,
+                    'duration' => $duration,
+                    'news_collected' => $totalFetched,
+                    'news_added' => $insertedCount,
+                    'duplicate_count' => $duplicateCount,
+                    'error_count' => $errorCount
+                ]);
+            } catch (\Throwable $hEx) {
+                // history logging safeguard
+            }
 
         } catch (Throwable $e) {
+            $duration = round(microtime(true) - $startTime, 2);
             $errorCount++;
             $this->aiDb->prepare("
                 UPDATE sources 
@@ -169,14 +231,39 @@ class GrabberManager {
                 WHERE id = :id
             ")->execute(['id' => $sourceId, 'err' => $e->getMessage()]);
 
+            // Save error record in grab_history
+            try {
+                $histStmt = $this->aiDb->prepare("
+                    INSERT INTO grab_history (
+                        source_id, run_time, duration_seconds, news_collected, 
+                        news_added, duplicate_count, error_count, status, error_message
+                    ) VALUES (
+                        :source_id, :run_time, :duration, 0, 
+                        0, 0, 1, 'error', :err
+                    )
+                ");
+                $histStmt->execute([
+                    'source_id' => $sourceId,
+                    'run_time' => $runTime,
+                    'duration' => $duration,
+                    'err' => mb_substr($e->getMessage(), 0, 1000)
+                ]);
+            } catch (\Throwable $hEx) {
+                // history logging safeguard
+            }
+
             throw $e;
         }
 
         return [
             'source_id' => $sourceId,
             'source_name' => $grabber->getName(),
-            'total_fetched' => count($grabbedItems ?? []),
+            'run_time' => $runTime,
+            'duration_seconds' => $duration,
+            'total_fetched' => $totalFetched,
+            'news_collected' => $totalFetched,
             'new_items' => $insertedCount,
+            'news_added' => $insertedCount,
             'duplicates' => $duplicateCount,
             'errors' => $errorCount
         ];
@@ -289,6 +376,93 @@ class GrabberManager {
             ")->execute(['id' => $id, 'err' => $e->getMessage()]);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Get grab history logs with optional filtering and pagination
+     */
+    public function getGrabHistory(?string $sourceId = null, int $limit = 25, int $page = 1): array {
+        $offset = ($page - 1) * $limit;
+        $where = [];
+        $params = [];
+
+        if ($sourceId && $sourceId !== 'all') {
+            $where[] = "h.source_id = :sid";
+            $params['sid'] = $sourceId;
+        }
+
+        $whereSql = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
+
+        $countStmt = $this->aiDb->prepare("SELECT COUNT(*) FROM grab_history h {$whereSql}");
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        $query = "
+            SELECT h.*, s.name as source_name, s.url as source_url, s.category as source_category
+            FROM grab_history h
+            LEFT JOIN sources s ON h.source_id = s.id
+            {$whereSql}
+            ORDER BY h.run_time DESC, h.id DESC
+            LIMIT :limit OFFSET :offset
+        ";
+        $stmt = $this->aiDb->prepare($query);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $items = $stmt->fetchAll();
+
+        foreach ($items as &$item) {
+            $item['id'] = (int)$item['id'];
+            $item['news_collected'] = (int)$item['news_collected'];
+            $item['news_added'] = (int)$item['news_added'];
+            $item['duplicate_count'] = (int)$item['duplicate_count'];
+            $item['error_count'] = (int)$item['error_count'];
+            $item['duration_seconds'] = (float)$item['duration_seconds'];
+        }
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'total_pages' => $limit > 0 ? (int)ceil($total / $limit) : 1
+        ];
+    }
+
+    /**
+     * Get aggregate statistics from grab_history
+     */
+    public function getGrabHistoryStats(): array {
+        try {
+            $stats = $this->aiDb->query("
+                SELECT 
+                    COUNT(*) as total_runs,
+                    COALESCE(SUM(news_collected), 0) as total_collected,
+                    COALESCE(SUM(news_added), 0) as total_added,
+                    COALESCE(SUM(duplicate_count), 0) as total_duplicates,
+                    MAX(run_time) as last_run_time
+                FROM grab_history
+            ")->fetch();
+
+            return [
+                'total_runs' => (int)($stats['total_runs'] ?? 0),
+                'total_collected' => (int)($stats['total_collected'] ?? 0),
+                'total_added' => (int)($stats['total_added'] ?? 0),
+                'total_duplicates' => (int)($stats['total_duplicates'] ?? 0),
+                'last_run_time' => $stats['last_run_time'] ?? null
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'total_runs' => 0,
+                'total_collected' => 0,
+                'total_added' => 0,
+                'total_duplicates' => 0,
+                'last_run_time' => null
+            ];
         }
     }
 }

@@ -127,6 +127,61 @@
       </div>
     </div>
 
+    <!-- Recent Grabber Runs Preview -->
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <h2>Son Toplanış Tarixçəsi (Grabber Runs)</h2>
+          <p class="section-desc">Ən son icra olunan mənbələr, toplanan xəbərlər və DB-yə əlavə edilən yeni materiallar</p>
+        </div>
+        <router-link to="/history" class="btn btn-secondary btn-sm">Bütün Tarixçəyə Bax</router-link>
+      </div>
+
+      <div v-if="recentHistory.length === 0" class="empty-state">
+        <p>Hələ heç bir toplanış qeydə alınmayıb. "Bütün Mənbələri Topla" düyməsinə klikləyərək toplanışı başladın.</p>
+      </div>
+
+      <div v-else class="recent-history-table-wrap">
+        <table class="dash-history-table">
+          <thead>
+            <tr>
+              <th>İcra Vaxtı (Run Time)</th>
+              <th>Mənbə</th>
+              <th>İcra Müddəti</th>
+              <th class="text-center">Toplanan Xəbər</th>
+              <th class="text-center">DB-yə Yeni Əlavə</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="h in recentHistory" :key="h.id">
+              <td class="cell-time">
+                <span class="time-main">{{ formatDateTime(h.run_time) }}</span>
+                <span class="time-sub">{{ formatTimeAgo(h.run_time) }}</span>
+              </td>
+              <td>
+                <span class="src-badge-name">{{ h.source_name || h.source_id }}</span>
+              </td>
+              <td>
+                <span class="dash-duration">{{ h.duration_seconds > 0 ? h.duration_seconds + ' san' : '< 0.1 san' }}</span>
+              </td>
+              <td class="text-center">
+                <span class="badge-count badge-collected">{{ h.news_collected }}</span>
+              </td>
+              <td class="text-center">
+                <span v-if="h.news_added > 0" class="badge-count badge-added">+{{ h.news_added }} yeni</span>
+                <span v-else class="badge-count badge-zero">0</span>
+              </td>
+              <td>
+                <span v-if="h.status === 'success'" class="dash-status-success">Uğurlu</span>
+                <span v-else class="dash-status-error" :title="h.error_message">Xəta</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Latest News Feed Preview -->
     <div class="section-card">
       <div class="section-header">
@@ -188,9 +243,11 @@ export default {
     onMounted(async () => {
       await store.fetchSources()
       await store.fetchNews(1)
+      await store.fetchGrabHistory(1)
     })
 
     const recentNews = computed(() => store.news.slice(0, 6))
+    const recentHistory = computed(() => store.grabHistory.slice(0, 5))
 
     const formatStatus = (st) => {
       const map = {
@@ -210,6 +267,27 @@ export default {
       })
     }
 
+    const formatDateTime = (dateStr) => {
+      if (!dateStr) return '—'
+      const d = new Date(dateStr)
+      return d.toLocaleString('az-AZ', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })
+    }
+
+    const formatTimeAgo = (dateStr) => {
+      if (!dateStr) return ''
+      const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+      if (diff < 60) return 'bayaq'
+      if (diff < 3600) return `${Math.floor(diff / 60)} dəq əvvəl`
+      if (diff < 86400) return `${Math.floor(diff / 3600)} saat əvvəl`
+      return `${Math.floor(diff / 86400)} gün əvvəl`
+    }
+
     const openModal = (article) => {
       selectedArticle.value = article
       store.activeArticle = article
@@ -218,9 +296,12 @@ export default {
     return {
       store,
       recentNews,
+      recentHistory,
       selectedArticle,
       formatStatus,
       formatDate,
+      formatDateTime,
+      formatTimeAgo,
       openModal
     }
   }
@@ -561,4 +642,112 @@ export default {
   color: var(--text-dim);
   font-size: 0.95rem;
 }
+
+/* Dashboard Grab History Table */
+.recent-history-table-wrap {
+  overflow-x: auto;
+}
+
+.dash-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.86rem;
+}
+
+.dash-history-table th {
+  background: rgba(15, 23, 42, 0.4);
+  padding: 10px 16px;
+  font-weight: 600;
+  color: var(--text-dim, #94a3b8);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.dash-history-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-main, #e2e8f0);
+  vertical-align: middle;
+}
+
+.dash-history-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cell-time {
+  display: flex;
+  flex-direction: column;
+}
+
+.time-main {
+  font-weight: 600;
+  color: var(--text-main, #fff);
+}
+
+.time-sub {
+  font-size: 0.72rem;
+  color: var(--text-dim, #64748b);
+}
+
+.src-badge-name {
+  font-weight: 600;
+  color: var(--color-primary, #fcdb56);
+}
+
+.dash-duration {
+  font-size: 0.78rem;
+  color: var(--text-dim, #94a3b8);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.badge-count {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.badge-collected {
+  background: rgba(59, 130, 246, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.badge-added {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-zero {
+  color: var(--text-dim, #64748b);
+  background: transparent;
+}
+
+.dash-status-success {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+.dash-status-error {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  padding: 3px 8px;
+  border-radius: 12px;
+  cursor: help;
+}
+
+.text-center { text-align: center; }
 </style>

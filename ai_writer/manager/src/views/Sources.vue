@@ -6,6 +6,12 @@
         <p class="page-desc">Mənbələri aktiv/deaktiv edin, AI rewrite və yenilənmə (retry) intervallarını tənzimləyin.</p>
       </div>
       <div class="page-actions">
+        <router-link to="/history" class="btn btn-secondary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/>
+          </svg>
+          <span>Toplanış Tarixçəsi</span>
+        </router-link>
         <button @click="store.grabAllSources()" :disabled="store.loading" class="btn btn-primary">
           <svg class="spin-on-load" :class="{ spinning: store.loading }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -39,7 +45,7 @@
           </div>
         </div>
 
-        <!-- Card Stats -->
+        <!-- Card Stats (4 columns: Total, Posted, Last News Grabbed, Last Check) -->
         <div class="card-stats-row">
           <div class="stat-box">
             <span class="stat-label">Toplam Xəbər</span>
@@ -50,9 +56,25 @@
             <span class="stat-val stat-green">{{ src.posted_news || 0 }}</span>
           </div>
           <div class="stat-box">
+            <span class="stat-label">Son Xəbər Tarixi</span>
+            <span class="stat-val stat-cyan" :title="src.last_news_grabbed_at || 'Hələ xəbər toplanmayıb'">
+              {{ formatDate(src.last_news_grabbed_at) || 'Heç vaxt' }}
+            </span>
+          </div>
+          <div class="stat-box">
             <span class="stat-label">Son Yoxlanış</span>
             <span class="stat-val">{{ formatDate(src.last_grabbed_at) || 'Heç vaxt' }}</span>
           </div>
+        </div>
+
+        <!-- Last Run Banner -->
+        <div v-if="src.last_run_collected !== null" class="card-last-run-banner">
+          <span class="run-dot"></span>
+          <span class="run-text">
+            Son toplanış: <strong>{{ src.last_run_collected }}</strong> tapıldı,
+            <strong class="text-green">+{{ src.last_run_added }}</strong> yeni DB-yə əlavə edildi
+            <span v-if="src.last_run_duration" class="run-dur">({{ src.last_run_duration }}s)</span>
+          </span>
         </div>
 
         <!-- Controls Section -->
@@ -107,41 +129,170 @@
 
         <!-- Card Footer Actions -->
         <div class="card-footer">
-          <div v-if="src.last_error" class="error-pill" :title="src.last_error">
-            Xəta: {{ src.last_error.slice(0, 30) }}...
+          <div 
+            v-if="src.last_error" 
+            class="error-pill error-pill-clickable" 
+            :title="'Xətanın detallarına baxmaq üçün klikləyin:\n' + src.last_error"
+            @click="openSourceErrorModal(src)"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>Xəta: {{ src.last_error.slice(0, 24) }}...</span>
           </div>
           <div v-else class="status-pill" :class="'pill-' + src.last_status">
             {{ src.last_status === 'running' ? 'İşləyir...' : 'Hazır' }}
           </div>
 
-          <button 
-            @click="store.grabSource(src.id)" 
-            :disabled="store.grabbingSourceId === src.id"
-            class="btn btn-secondary btn-sm"
-          >
-            <svg class="spin-on-load" :class="{ spinning: store.grabbingSourceId === src.id }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-            </svg>
-            <span>{{ store.grabbingSourceId === src.id ? 'Toplanır...' : 'İndi Yoxla' }}</span>
-          </button>
+          <div class="footer-actions-group">
+            <router-link :to="'/history?source=' + src.id" class="btn btn-outline-secondary btn-sm" title="Bu mənbənin toplanış tarixçəsinə bax">
+              Tarixçə
+            </router-link>
+            <button 
+              @click="store.grabSource(src.id)" 
+              :disabled="store.grabbingSourceId === src.id"
+              class="btn btn-secondary btn-sm"
+            >
+              <svg class="spin-on-load" :class="{ spinning: store.grabbingSourceId === src.id }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+              <span>{{ store.grabbingSourceId === src.id ? 'Toplanır...' : 'İndi Yoxla' }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Source Error Details Modal -->
+    <transition name="modal-fade">
+      <div v-if="selectedErrorSource" class="modal-backdrop" @click.self="selectedErrorSource = null">
+        <div class="modal-dialog modal-dialog-error">
+          <div class="modal-header modal-header-danger">
+            <div class="modal-title-group">
+              <div class="modal-icon-danger">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="modal-title">Mənbə Toplanış Xətası</h3>
+                <span class="modal-source-badge">{{ selectedErrorSource.name }}</span>
+              </div>
+            </div>
+            <button class="close-btn" @click="selectedErrorSource = null" aria-label="Bağla">&times;</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="modal-info-grid">
+              <div class="info-row">
+                <span class="info-key">Mənbə ID:</span>
+                <span class="info-val font-mono">{{ selectedErrorSource.id }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Hədəf URL:</span>
+                <a :href="selectedErrorSource.url" target="_blank" rel="noopener noreferrer" class="info-link">
+                  <span>{{ selectedErrorSource.url }}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <div class="code-box-wrap">
+              <div class="code-box-header">
+                <span class="code-box-title">Dəqiq Xəta Mesajı:</span>
+                <button type="button" @click="copyErrorMessage" class="btn-copy">
+                  <span v-if="copied">Kopyalandı!</span>
+                  <span v-else>Kopyala</span>
+                </button>
+              </div>
+              <pre class="error-message-code">{{ selectedErrorSource.last_error }}</pre>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="selectedErrorSource = null">Bağla</button>
+            <router-link :to="'/history?source=' + selectedErrorSource.id" class="btn btn-secondary">
+              Tarixçəyə Bax
+            </router-link>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              :disabled="store.grabbingSourceId === selectedErrorSource.id"
+              @click="retryFromModal"
+            >
+              <svg class="spin-on-load" :class="{ spinning: store.grabbingSourceId === selectedErrorSource.id }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+              <span>{{ store.grabbingSourceId === selectedErrorSource.id ? 'Toplanır...' : 'İndi Yenidən Yoxla' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script>
-import { onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useAiWriterStore } from '../stores/aiWriter'
 
 export default {
   name: 'Sources',
   setup() {
     const store = useAiWriterStore()
+    const selectedErrorSource = ref(null)
+    const copied = ref(false)
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && selectedErrorSource.value) {
+        selectedErrorSource.value = null
+        copied.value = false
+      }
+    }
 
     onMounted(() => {
+      window.addEventListener('keydown', handleKeyDown)
       store.fetchSources()
     })
+
+    onUnmounted(() => {
+      window.removeEventListener('keydown', handleKeyDown)
+    })
+
+    const openSourceErrorModal = (src) => {
+      selectedErrorSource.value = src
+      copied.value = false
+    }
+
+    const copyErrorMessage = async () => {
+      if (selectedErrorSource.value?.last_error) {
+        try {
+          await navigator.clipboard.writeText(selectedErrorSource.value.last_error)
+          copied.value = true
+          setTimeout(() => { copied.value = false }, 2000)
+        } catch (e) {
+          copied.value = true
+          setTimeout(() => { copied.value = false }, 2000)
+        }
+      }
+    }
+
+    const retryFromModal = async () => {
+      if (!selectedErrorSource.value) return
+      const id = selectedErrorSource.value.id
+      await store.grabSource(id)
+      const updated = store.sources.find(s => s.id === id)
+      if (updated) {
+        if (!updated.last_error) {
+          selectedErrorSource.value = null
+        } else {
+          selectedErrorSource.value = updated
+        }
+      }
+    }
 
     const formatDomain = (url) => {
       try {
@@ -179,6 +330,11 @@ export default {
 
     return {
       store,
+      selectedErrorSource,
+      copied,
+      openSourceErrorModal,
+      copyErrorMessage,
+      retryFromModal,
       formatDomain,
       formatDate,
       toggleEnabled,
@@ -316,7 +472,7 @@ export default {
 /* Stats Row */
 .card-stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   background: var(--bg-surface);
   padding: 12px;
@@ -342,6 +498,68 @@ export default {
 }
 
 .stat-green { color: #10b981; }
+.stat-cyan { color: #00f0ff; }
+
+/* Last Run Banner */
+.card-last-run-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--text-main, #e2e8f0);
+}
+
+.run-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00f0ff;
+  box-shadow: 0 0 6px #00f0ff;
+  flex-shrink: 0;
+}
+
+.run-text {
+  line-height: 1.3;
+}
+
+.run-dur {
+  font-size: 0.72rem;
+  color: var(--text-dim, #94a3b8);
+  margin-left: 2px;
+}
+
+.text-green {
+  color: #10b981;
+}
+
+.footer-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-outline-secondary {
+  background: transparent;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  color: var(--text-main, #cbd5e1);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
 
 /* Controls */
 .card-controls {
@@ -492,5 +710,234 @@ export default {
   background: rgba(239, 68, 68, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+.error-pill-clickable {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.error-pill-clickable:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Modal */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-dialog-error {
+  width: 100%;
+  max-width: 580px;
+  background: var(--bg-surface, #131b2e);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 30px rgba(239, 68, 68, 0.15);
+  overflow: hidden;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-header-danger {
+  padding: 18px 24px;
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.04) 100%);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.modal-icon-danger {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 3px 0;
+}
+
+.modal-source-badge {
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 500;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle, #1e293b);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.86rem;
+}
+
+.info-key {
+  color: var(--text-muted, #94a3b8);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.info-val {
+  color: var(--text-main, #fff);
+  text-align: right;
+  word-break: break-all;
+}
+
+.info-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+  word-break: break-all;
+}
+
+.info-link:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+.code-box-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.code-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.code-box-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+}
+
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle, #1e293b);
+  color: var(--text-muted, #cbd5e1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-copy:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.error-message-code {
+  margin: 0;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  color: #f87171;
+  font-family: 'JetBrains Mono', monospace, Consolas, Courier;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  background: rgba(15, 23, 42, 0.4);
+  border-top: 1px solid var(--border-subtle, #1e293b);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

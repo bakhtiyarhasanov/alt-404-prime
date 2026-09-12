@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `sources` (
   `retry_interval_minutes` INT NOT NULL DEFAULT 30,
   `grabber_class` VARCHAR(100) NOT NULL,
   `last_grabbed_at` DATETIME DEFAULT NULL,
+  `last_news_grabbed_at` DATETIME DEFAULT NULL,
   `last_status` VARCHAR(50) DEFAULT 'idle',
   `last_error` TEXT DEFAULT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -96,6 +97,26 @@ CREATE TABLE IF NOT EXISTS `auth_tokens` (
   PRIMARY KEY (`id`),
   KEY `idx_token_hash` (`token_hash`),
   CONSTRAINT `fk_auth_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------------
+-- 6. grab_history: Logs of every grabber run (run time, duration, items collected/added)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `grab_history` (
+  `id` INT AUTO_INCREMENT NOT NULL,
+  `source_id` VARCHAR(50) NOT NULL,
+  `run_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `duration_seconds` DECIMAL(6, 2) DEFAULT 0.00,
+  `news_collected` INT NOT NULL DEFAULT 0,
+  `news_added` INT NOT NULL DEFAULT 0,
+  `duplicate_count` INT NOT NULL DEFAULT 0,
+  `error_count` INT NOT NULL DEFAULT 0,
+  `status` ENUM('success', 'error', 'skipped') NOT NULL DEFAULT 'success',
+  `error_message` TEXT DEFAULT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_history_source` (`source_id`),
+  KEY `idx_history_runtime` (`run_time` DESC)
 ) ENGINE=InnoDB;
 
 -- ===========================================================================
