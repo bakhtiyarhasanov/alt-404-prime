@@ -1,96 +1,407 @@
 <?php
 /**
- * Shared footer include.
+ * Shared footer include for ALT404 Prime.
  */
 $footerCategories = getVisibleCategories();
 ?>
 
-<!-- Video Modal (global) -->
-<div id="video-modal" class="video-modal" style="display:none">
-  <div class="video-modal-inner">
-    <button class="video-modal-close" aria-label="Bağla">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-    <div class="video-modal-embed">
-      <iframe id="video-iframe" src="" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<!-- =========================================================================
+     GLOBAL MODALS & DRAWERS
+     ========================================================================= -->
+
+<!-- 1. Search Modal (Cmd+K / Search button) -->
+<div
+  id="search-overlay-modal"
+  class="fixed inset-0 z-50 overflow-hidden bg-[#080117]/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in"
+  style="display:none"
+>
+  <div
+    id="search-modal-dialog"
+    class="w-full max-w-3xl h-[580px] max-h-[82vh] bg-white dark:bg-[#0e041d] text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-2xl overflow-hidden border border-neutral-200 dark:border-[#261545] flex flex-col transition-none"
+  >
+    <!-- 1. Search Input Bar (Fixed height) -->
+    <div class="p-3.5 sm:p-4 border-b border-neutral-200 dark:border-[#261545] flex items-center gap-3 bg-neutral-50 dark:bg-[#140829] shrink-0">
+      <svg class="w-5 h-5 text-[#080117] dark:text-[#fcdb56] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        id="search-input-field"
+        type="text"
+        placeholder="Məqalə, mövzu və ya açar söz axtarın (məs: Apple, Tesla, AI)..."
+        class="flex-1 bg-transparent text-sm sm:text-base text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none font-medium"
+        autocomplete="off"
+      />
+      <button
+        id="search-clear-btn"
+        type="button"
+        class="p-1 px-2.5 rounded-md bg-neutral-200/80 dark:bg-[#1f0f3d] hover:bg-neutral-300 dark:hover:bg-[#2c1655] text-neutral-600 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white text-xs font-medium cursor-pointer transition-colors"
+        style="display:none"
+      >
+        Təmizlə
+      </button>
+      <button
+        id="search-modal-close-btn"
+        type="button"
+        aria-label="Axtarışı bağla"
+        class="p-1.5 rounded-lg bg-neutral-200/80 dark:bg-[#1f0f3d] hover:bg-neutral-300 dark:hover:bg-[#2c1655] text-neutral-600 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <p id="video-modal-title" class="video-modal-title"></p>
+
+    <!-- 2. Quick Filter Categories (Neat horizontal scroll bar with stable height) -->
+    <div class="px-4 py-2.5 bg-neutral-50/60 dark:bg-[#110624] border-b border-neutral-100 dark:border-[#261545] flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+      <span class="text-[11px] text-neutral-400 dark:text-neutral-500 font-bold uppercase tracking-wider mr-1 shrink-0 flex items-center gap-1">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        BÖLMƏ:
+      </span>
+      <div id="search-category-tabs" class="flex items-center gap-1.5">
+        <button
+          type="button"
+          data-category="ALL"
+          class="search-cat-tab px-3 py-1 rounded-lg text-xs tracking-wide transition-all whitespace-nowrap shrink-0 cursor-pointer bg-[#fcdb56] text-[#080117] font-semibold shadow-xs"
+        >
+          Hamısı
+        </button>
+        <?php foreach ($footerCategories as $fCat): ?>
+          <button
+            type="button"
+            data-category="<?= e($fCat['slug']) ?>"
+            class="search-cat-tab px-3 py-1 rounded-lg text-xs tracking-wide transition-all whitespace-nowrap shrink-0 cursor-pointer bg-white dark:bg-[#190b34] hover:bg-neutral-200/80 dark:hover:bg-[#25104c] text-neutral-700 dark:text-neutral-200 font-medium border border-neutral-200/80 dark:border-[#321860]"
+          >
+            <?= e(preg_replace('/\s+Xəbərləri$/iu', '', $fCat['label'])) ?>
+          </button>
+        <?php endforeach; ?>
+      </div>
+    </div>
+
+    <!-- 3. Results List (Scrollable news list) -->
+    <div id="search-modal-results" class="flex-1 overflow-y-auto min-h-0 p-4 space-y-2.5 bg-white dark:bg-[#0e041d]">
+      <!-- Filled dynamically by main.js -->
+    </div>
+
+    <!-- 4. Search Footer -->
+    <div class="p-3 bg-neutral-50 dark:bg-[#140829] border-t border-neutral-200 dark:border-[#261545] flex items-center justify-between text-[11px] text-neutral-500 dark:text-neutral-400 shrink-0">
+      <span id="search-modal-count" class="font-medium text-neutral-600 dark:text-neutral-300">0 material tapıldı</span>
+      <span class="font-mono text-neutral-400 dark:text-neutral-500">ESC ilə bağla</span>
+    </div>
   </div>
 </div>
 
-<footer class="site-footer">
-  <div class="footer-inner">
-    <div class="footer-grid">
-
-      <!-- Brand -->
-      <div class="footer-brand">
-        <div style="margin-bottom:16px">
-          <img src="/assets/img/logo.png" alt="alt404.com Tech News" style="height:32px;width:auto;max-width:150px;object-fit:contain;border-radius:2px">
+<!-- 2. Bookmarks Drawer (Slide-in right) -->
+<div
+  id="bookmarks-drawer-backdrop"
+  class="fixed inset-0 z-50 overflow-hidden bg-[#080117]/70 backdrop-blur-xs flex justify-end"
+  style="display:none"
+>
+  <div
+    class="w-full max-w-md bg-white dark:bg-[#0e041d] text-neutral-900 dark:text-neutral-100 h-full shadow-2xl flex flex-col border-l border-neutral-200 dark:border-[#261545] animate-slide-in-right"
+  >
+    <!-- Drawer Header -->
+    <div class="p-4 sm:p-5 border-b border-neutral-200 dark:border-[#261545] flex items-center justify-between bg-neutral-50 dark:bg-[#140829]">
+      <div class="flex items-center gap-2">
+        <div class="p-2 rounded-lg bg-[#fcdb56]/30 text-[#080117] dark:text-[#fcdb56]">
+          <svg class="w-4 h-4 fill-[#080117] dark:fill-[#fcdb56]" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
         </div>
-        <p class="footer-brand-desc">Azərbaycan texnologiya mediası. Sürətli, dərin, minimal.</p>
-        <div class="footer-social">
-          <a href="<?= e(getSettingValue('instagram_link', 'https://www.instagram.com/alt404com/')) ?>" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-          </a>
-          <a href="<?= e(getSettingValue('facebook_link', 'https://www.facebook.com/alt404com')) ?>" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-          </a>
-          <a href="<?= e(getSettingValue('telegram_link', 'http://t.me/alt404com')) ?>" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-          </a>
-          <a href="<?= e(getSettingValue('youtube_link', 'https://www.youtube.com/@alt404com')) ?>" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
-          </a>
-          <a href="<?= e(getSettingValue('linkedin_link', 'https://www.linkedin.com/company/alt404com')) ?>" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-          </a>
-          <?php if (getSettingValue('twitter_link')): ?>
-          <a href="<?= e(getSettingValue('twitter_link')) ?>" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          </a>
-          <?php endif; ?>
+        <div>
+          <h3 class="font-semibold text-sm uppercase tracking-wider text-neutral-900 dark:text-white">
+            Saxlanılan Materiallar
+          </h3>
+          <p id="bookmarks-header-count" class="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">
+            0 material yaddaşdadır
+          </p>
         </div>
       </div>
 
-      <!-- Categories -->
-      <div>
-        <p class="footer-heading">Kateqoriyalar</p>
-        <div class="footer-links">
-          <?php foreach ($footerCategories as $cat): ?>
-            <a href="/<?= e($cat['slug']) ?>"><?= e($cat['label']) ?></a>
-          <?php endforeach; ?>
-        </div>
-      </div>
-
-      <!-- Company -->
-      <div>
-        <p class="footer-heading">Şirkət</p>
-        <div class="footer-links">
-          <a href="/haqqimizda">Haqqımızda</a>
-          <a href="/elaqe">Əlaqə</a>
-        </div>
-      </div>
-
-      <!-- Legal -->
-      <div>
-        <p class="footer-heading">Hüquqi</p>
-        <div class="footer-links">
-          <a href="/istifade-sertleri">İstifadə Şərtləri</a>
-          <a href="/cerezler">Çərəzlər</a>
-        </div>
+      <div class="flex items-center gap-2">
+        <button
+          id="bookmarks-clear-all-btn"
+          type="button"
+          class="p-2 rounded-lg text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors text-xs flex items-center gap-1 cursor-pointer"
+          title="Hamısını sil"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+        <button
+          id="bookmarks-close-btn"
+          type="button"
+          class="p-2 rounded-lg bg-neutral-200/70 dark:bg-[#1f0f3d] hover:bg-neutral-300 dark:hover:bg-[#2c1655] text-neutral-700 dark:text-neutral-200 transition-colors cursor-pointer"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </div>
 
-    <div class="footer-bottom">
-      <p class="footer-copyright">© 2026 alt404. Bütün hüquqlar qorunur.</p>
-      <div class="footer-ai-badge">
-        <span class="live-dot"></span>
-        <span>alt404 süni intellekt tərəfindən dəstəklənir</span>
+    <!-- Drawer Items List -->
+    <div id="bookmarks-list-container" class="flex-1 overflow-y-auto p-4 space-y-3">
+      <!-- Filled dynamically by main.js -->
+    </div>
+  </div>
+</div>
+
+<!-- 3. Video Modal Player -->
+<div
+  id="video-player-modal"
+  class="fixed inset-0 z-50 bg-[#080117]/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+  style="display:none"
+>
+  <div
+    id="video-modal-dialog"
+    class="w-full max-w-4xl bg-[#080117] rounded-2xl overflow-hidden shadow-2xl border border-[#261545] relative animate-fade-in"
+  >
+    <!-- Video Modal Top Header -->
+    <div class="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 border-b border-[#261545] bg-[#080117]">
+      <div class="flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#fcdb56]">
+          YouTube Video Pleyeri
+        </span>
+      </div>
+
+      <button
+        id="video-modal-close-btn"
+        type="button"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#fcdb56] hover:bg-[#fcdb56]/90 text-[#080117] font-bold text-xs shadow-md transition-transform active:scale-95 cursor-pointer"
+        title="Bağla (Esc)"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="hidden sm:inline font-bold">Bağla</span>
+      </button>
+    </div>
+
+    <!-- Video Embed Frame -->
+    <div class="relative aspect-video w-full bg-black">
+      <iframe
+        id="video-player-iframe"
+        src=""
+        title="Video"
+        class="w-full h-full border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+    </div>
+
+    <!-- Video Info -->
+    <div class="p-4 sm:p-5 bg-[#0c0322]">
+      <h2 id="video-player-title" class="text-sm sm:text-base md:text-lg font-semibold text-white leading-snug"></h2>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Floating Toast Notification -->
+<div
+  id="app-toast-notification"
+  class="fixed bottom-5 right-5 z-50 px-4 py-3 bg-[#080117] text-white border border-[#fcdb56]/80 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold"
+  style="display:none"
+>
+  <span class="w-2 h-2 rounded-full bg-[#fcdb56] animate-ping"></span>
+  <span id="app-toast-text">Məlumat yeniləndi</span>
+</div>
+
+<!-- =========================================================================
+     SITE FOOTER
+     ========================================================================= -->
+<footer id="main-footer" class="w-full bg-[#FFFDF5] dark:bg-[#080117] border-t border-neutral-300 dark:border-[#261545] text-neutral-900 dark:text-neutral-100 pt-12 pb-8 mt-auto">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 pb-10 border-b border-neutral-300/80 dark:border-[#261545]">
+      
+      <!-- Col 1: Brand Info & Newsletter (5 cols) -->
+      <div class="lg:col-span-5 space-y-4">
+        <div class="flex items-center gap-2">
+          <a href="/" class="hover:opacity-85 transition-opacity select-none" title="ALT404 - Əsas səhifə">
+            <img src="/assets/img/logo-dark.png" alt="ALT404" class="h-8 sm:h-9 w-auto object-contain select-none dark:hidden" loading="lazy">
+            <img src="/assets/img/logo.png" alt="ALT404" class="h-8 sm:h-9 w-auto object-contain select-none hidden dark:block" loading="lazy">
+          </a>
+        </div>
+
+        <p class="text-sm text-neutral-600 dark:text-neutral-400 max-w-sm leading-relaxed">
+          Azərbaycanın peşəkar texnologiya mediası — sürətli, dərin və minimal | Xəbərlər, analitik icmallar və eksklüziv layihələr
+        </p>
+
+        <!-- Newsletter Subscription -->
+        <div class="pt-2 max-w-md">
+          <label for="newsletter-email" class="block text-xs font-semibold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-2">
+            Həftəlik Texno-Bülletenə Qoşul
+          </label>
+          <div id="newsletter-success-box" class="items-center gap-2 p-3 bg-[#fcdb56]/20 text-[#080117] dark:text-[#fcdb56] border border-[#fcdb56] rounded-lg text-xs font-medium" style="display:none">
+            <svg class="w-4 h-4 text-[#080117] dark:text-[#fcdb56] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>Təşəkkürlər! Ən son texnoloji xülasələr e-poçtunuza göndəriləcək.</span>
+          </div>
+          <form id="newsletter-form" class="flex items-center gap-2">
+            <input
+              id="newsletter-email"
+              type="email"
+              required
+              placeholder="E-poçt ünvanınız..."
+              class="flex-1 px-3.5 py-2 text-xs rounded-lg border border-neutral-300 dark:border-[#261545] bg-white dark:bg-[#120726] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#fcdb56]"
+            />
+            <button
+              id="newsletter-submit-btn"
+              type="submit"
+              class="px-4 py-2 rounded-lg bg-[#fcdb56] text-[#080117] font-semibold text-xs uppercase tracking-wider hover:bg-[#fcdb56]/90 transition-colors flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+            >
+              <span>ABUNƏ OL</span>
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- Social Media Links (Loaded from settings; hidden if empty) -->
+        <?php
+          $socialLinks = [
+            'instagram' => [
+              'url'   => trim(getSettingValue('instagram_link', '')),
+              'title' => 'Instagram',
+              'icon'  => '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>'
+            ],
+            'facebook' => [
+              'url'   => trim(getSettingValue('facebook_link', '')),
+              'title' => 'Facebook',
+              'icon'  => '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>'
+            ],
+            'x' => [
+              'url'   => trim(getSettingValue('twitter_link', '')),
+              'title' => 'X',
+              'icon'  => '<svg class="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>'
+            ],
+            'youtube' => [
+              'url'   => trim(getSettingValue('youtube_link', '')),
+              'title' => 'YouTube',
+              'icon'  => '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>'
+            ],
+            'tiktok' => [
+              'url'   => trim(getSettingValue('tiktok_link', '')),
+              'title' => 'TikTok',
+              'icon'  => '<svg class="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43 6.28 6.28 0 0 0 1.93-4.47V8.5a8.28 8.28 0 0 0 4.8 1.54V6.69h-1z" /></svg>'
+            ],
+            'telegram' => [
+              'url'   => trim(getSettingValue('telegram_link', '')),
+              'title' => 'Telegram',
+              'icon'  => '<svg class="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="m20.665 3.717-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.579.192l-8.533 7.701h-.002l-.313 4.672c.46 0 .664-.211.921-.46l2.21-2.15 4.597 3.397c.848.467 1.457.227 1.668-.785l3.019-14.228c.309-1.239-.473-1.8-1.282-1.434z" /></svg>'
+            ],
+            'linkedin' => [
+              'url'   => trim(getSettingValue('linkedin_link', '')),
+              'title' => 'LinkedIn',
+              'icon'  => '<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>'
+            ],
+          ];
+          $activeSocialLinks = array_filter($socialLinks, fn($item) => !empty($item['url']));
+        ?>
+
+        <?php if (!empty($activeSocialLinks)): ?>
+        <div class="pt-3">
+          <span class="block text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2.5">
+            Bizi İzləyin
+          </span>
+          <div class="flex flex-wrap items-center gap-2">
+            <?php foreach ($activeSocialLinks as $platform => $s): ?>
+              <a
+                id="footer-social-<?= e($platform) ?>"
+                href="<?= e($s['url']) ?>"
+                target="_blank"
+                rel="noreferrer"
+                title="<?= e($s['title']) ?>"
+                aria-label="<?= e($s['title']) ?>"
+                class="w-9 h-9 flex items-center justify-center rounded-lg bg-neutral-100 dark:bg-[#15082d] text-neutral-700 dark:text-neutral-200 hover:bg-[#fcdb56] dark:hover:bg-[#fcdb56] hover:text-[#080117] dark:hover:text-[#080117] hover:border-[#fcdb56] hover:scale-105 active:scale-95 transition-all duration-200 border border-neutral-200 dark:border-[#281648] shadow-xs cursor-pointer"
+              >
+                <?= $s['icon'] ?>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+      </div>
+
+      <!-- Col 2: Bölmələr (3 cols) -->
+      <div class="lg:col-span-3">
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-neutral-950 dark:text-white mb-3.5 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#fcdb56] shadow-[0_0_6px_rgba(252,219,86,0.8)]"></span>
+          Bölmələr
+        </h4>
+        <ul class="space-y-2 text-xs text-neutral-700 dark:text-neutral-300">
+          <li>
+            <a href="/" class="hover:text-[#080117] dark:hover:text-[#fcdb56] hover:translate-x-0.5 transition-all font-medium flex items-center gap-1.5">
+              <span class="text-neutral-400 dark:text-neutral-600 text-[10px]">›</span>
+              <span>ANA SƏHİFƏ</span>
+            </a>
+          </li>
+          <?php foreach ($footerCategories as $fCat): ?>
+            <li>
+              <a href="/<?= e($fCat['slug']) ?>" class="hover:text-[#080117] dark:hover:text-[#fcdb56] hover:translate-x-0.5 transition-all font-medium flex items-center gap-1.5">
+                <span class="text-neutral-400 dark:text-neutral-600 text-[10px]">›</span>
+                <span><?= e(mb_strtoupper(preg_replace('/\s+Xəbərləri$/iu', '', $fCat['label']), 'UTF-8')) ?></span>
+              </a>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+
+      <!-- Col 3: Şirkət (2 cols) -->
+      <div class="lg:col-span-2 space-y-3">
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-neutral-950 dark:text-white mb-3.5 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#fcdb56] shadow-[0_0_6px_rgba(252,219,86,0.8)]"></span>
+          Şirkət
+        </h4>
+        <ul class="space-y-2.5 text-xs text-neutral-700 dark:text-neutral-300 font-medium">
+          <li>
+            <a href="/haqqimizda" class="hover:text-[#080117] dark:hover:text-[#fcdb56] transition-colors flex items-center gap-1.5">
+              <span class="text-neutral-400 dark:text-neutral-600 text-[10px]">›</span>
+              <span>Haqqımızda</span>
+            </a>
+          </li>
+          <li>
+            <a href="/elaqe" class="hover:text-[#080117] dark:hover:text-[#fcdb56] transition-colors flex items-center gap-1.5">
+              <span class="text-neutral-400 dark:text-neutral-600 text-[10px]">›</span>
+              <span>Əlaqə</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Col 4: Hüquqi (2 cols) -->
+      <div class="lg:col-span-2 space-y-3">
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-neutral-950 dark:text-white mb-3.5 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#fcdb56] shadow-[0_0_6px_rgba(252,219,86,0.8)]"></span>
+          Hüquqi
+        </h4>
+        <ul class="space-y-2.5 text-xs text-neutral-700 dark:text-neutral-300 font-medium">
+          <li>
+            <a href="/istifade-sertleri" class="hover:text-[#080117] dark:hover:text-[#fcdb56] transition-colors flex items-center gap-1.5">
+              <span class="text-neutral-400 dark:text-neutral-600 text-[10px]">›</span>
+              <span>İstifadə şərtləri</span>
+            </a>
+          </li>
+          <li>
+            <a href="/cerezler" class="hover:text-[#080117] dark:hover:text-[#fcdb56] transition-colors flex items-center gap-1.5">
+              <span class="text-neutral-400 dark:text-neutral-600 text-[10px]">›</span>
+              <span>Çərəzlər</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Bottom Bar with Copyright & Scroll to Top -->
+    <div class="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-600 dark:text-neutral-400">
+      <div class="text-center sm:text-left font-medium">
+        © <?= date('Y') ?> ALT404.com | Bütün hüquqlar qorunur
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          id="scroll-to-top-btn"
+          type="button"
+          class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-neutral-200 dark:bg-[#1a0c35] text-neutral-800 dark:text-neutral-200 hover:bg-[#fcdb56] dark:hover:bg-[#fcdb56] hover:text-[#080117] dark:hover:text-[#080117] transition-colors font-medium text-xs shadow-2xs cursor-pointer border border-transparent dark:border-[#261545]"
+          title="Yuxarı qayıt"
+        >
+          <span>Yuxarı</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        </button>
       </div>
     </div>
   </div>
 </footer>
 
+<!-- Interactive Client-side Script -->
 <script src="/assets/js/main.js"></script>
 </body>
 </html>

@@ -51,14 +51,15 @@
         <form @submit.prevent="saveSetting" class="form">
           <!-- Short Text Input -->
           <div v-if="selectedSetting?.type === 'short_text'" class="form-group">
-            <label class="label">Mətn</label>
-            <input v-model="form.value" type="text" class="input" required placeholder="Dəyər daxil edin...">
+            <label class="label">Mətn / Link</label>
+            <input v-model="form.value" type="text" class="input" placeholder="Dəyər daxil edin və ya boş qoyun...">
+            <small class="field-hint">Boş buraxıldıqda bu ikon/düymə saytda görünməyəcək.</small>
           </div>
 
           <!-- Medium Text Textarea -->
           <div v-else-if="selectedSetting?.type === 'medium_text'" class="form-group">
             <label class="label">Uzun Mətn</label>
-            <textarea v-model="form.value" class="textarea" rows="5" required placeholder="Mətni daxil edin..."></textarea>
+            <textarea v-model="form.value" class="textarea" rows="5" placeholder="Mətni daxil edin..."></textarea>
           </div>
 
           <!-- Rich Text Quill Editor -->
@@ -337,6 +338,7 @@ export default {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 .file-preview {
@@ -487,5 +489,11 @@ export default {
 }
 .btn-primary:hover {
   background-color: var(--color-primary-hover);
+}
+.field-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 5px;
 }
 </style>

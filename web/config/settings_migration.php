@@ -1,4 +1,4 @@
-w<?php
+<?php
 /**
  * Settings Migration Script
  * Run this to create settings table and populate it with initial data.
@@ -61,6 +61,13 @@ try {
             'type' => 'short_text',
             'group_name' => 'social',
             'value' => 'https://www.youtube.com/@alt404com'
+        ],
+        [
+            'key' => 'tiktok_link',
+            'label' => 'TikTok Linki',
+            'type' => 'short_text',
+            'group_name' => 'social',
+            'value' => 'https://www.tiktok.com/@alt404com'
         ],
         [
             'key' => 'telegram_link',

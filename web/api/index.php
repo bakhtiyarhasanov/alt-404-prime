@@ -107,6 +107,12 @@ switch ($resource) {
     case 'settings':
         require_once __DIR__ . '/settings.php';
         break;
+    case 'search':
+        require_once __DIR__ . '/search.php';
+        break;
+    case 'projects':
+        require_once __DIR__ . '/projects.php';
+        break;
     default:
         http_response_code(404);
         echo json_encode(['error' => 'API endpoint not found']);

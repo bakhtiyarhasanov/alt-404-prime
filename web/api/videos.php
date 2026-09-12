@@ -26,6 +26,10 @@ if ($method === 'POST') {
         exit;
     }
 
+    if (!$thumbnail_url) {
+        $thumbnail_url = getYouTubeThumbnail($youtube_url);
+    }
+
     $stmt = $db->prepare('
         INSERT INTO home_videos (title, youtube_url, thumbnail_url, sort_order)
         VALUES (?, ?, ?, ?)
@@ -47,6 +51,10 @@ if ($method === 'PUT') {
     $youtube_url = $input['youtube_url'] ?? '';
     $thumbnail_url = $input['thumbnail_url'] ?? '';
     $sort_order = (int)($input['sort_order'] ?? 0);
+
+    if (!$thumbnail_url && $youtube_url) {
+        $thumbnail_url = getYouTubeThumbnail($youtube_url);
+    }
 
     $stmt = $db->prepare('
         UPDATE home_videos 

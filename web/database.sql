@@ -119,6 +119,26 @@ CREATE TABLE IF NOT EXISTS `home_videos` (
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------------
+-- 8. projects (Xüsusi Layihələr)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `projects` (
+  `id` VARCHAR(64) NOT NULL,
+  `title` VARCHAR(500) NOT NULL DEFAULT '',
+  `subtitle` VARCHAR(500) DEFAULT '',
+  `category` VARCHAR(100) NOT NULL DEFAULT 'EKSPERİMENT',
+  `image` TEXT NOT NULL,
+  `duration` VARCHAR(50) DEFAULT '15:00',
+  `youtube_url` TEXT NOT NULL,
+  `description` TEXT DEFAULT NULL,
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_projects_sort` (`sort_order`, `enabled`)
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------------
 -- 9. auth_tokens (JWT refresh / session tracking)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `auth_tokens` (
@@ -132,6 +152,19 @@ CREATE TABLE IF NOT EXISTS `auth_tokens` (
   KEY `idx_token_hash` (`token_hash`),
   CONSTRAINT `fk_token_user` FOREIGN KEY (`user_id`) REFERENCES `admin_users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------------
+-- 10. settings
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `settings` (
+  `key` VARCHAR(100) NOT NULL,
+  `label` VARCHAR(255) NOT NULL,
+  `type` VARCHAR(50) NOT NULL,
+  `group_name` VARCHAR(100) NOT NULL,
+  `value` LONGTEXT DEFAULT NULL,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ===========================================================================
 -- SEED DATA

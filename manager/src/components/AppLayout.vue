@@ -32,6 +32,10 @@
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
           Videolar
         </router-link>
+        <router-link to="/projects" class="nav-item" active-class="active">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          Layihələr
+        </router-link>
         <router-link to="/contacts" class="nav-item" active-class="active">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Müraciətlər
@@ -124,6 +128,7 @@ export default {
         Media: 'Media Kitabxanası',
         Contacts: 'Əlaqə Müraciətləri',
         Videos: 'Videolar',
+        Projects: 'Xüsusi Layihələr',
         Users: 'İstifadəçilər',
         Settings: 'Tənzimləmələr'
       }

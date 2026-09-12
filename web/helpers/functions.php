@@ -166,19 +166,26 @@ function getRelatedArticles(string $category, string $excludeId, int $limit = 3)
     return $rows;
 }
 
-function searchArticles(string $query): array {
+function searchArticles(string $query, ?string $category = null): array {
     $db = getDB();
     $like = '%' . $query . '%';
+    $params = [$like, $like, $like];
+    $catSql = '';
+    if (!empty($category) && strtoupper($category) !== 'ALL') {
+        $catSql = ' AND category = ?';
+        $params[] = $category;
+    }
     $stmt = $db->prepare(
-        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, reading_time, views, created_at, updating
+        "SELECT id, title, slug, excerpt, category, image_url, tags, featured, reading_time, views, created_at, updating
          FROM articles 
          WHERE published = 1 
            AND (start_time IS NULL OR start_time <= NOW()) 
            AND (end_time IS NULL OR end_time >= NOW()) 
            AND (title LIKE ? OR excerpt LIKE ? OR tags LIKE ?)
-         ORDER BY created_at DESC LIMIT 50'
+           $catSql
+         ORDER BY created_at DESC LIMIT 50"
     );
-    $stmt->execute([$like, $like, $like]);
+    $stmt->execute($params);
     $rows = $stmt->fetchAll();
     foreach ($rows as &$row) {
         $row['tags'] = json_decode($row['tags'] ?? '[]', true) ?: [];
@@ -214,18 +221,57 @@ function getAd(string $id): ?array {
     return $row;
 }
 
-function getHomeVideos(int $limit = 4): array {
-    $db = getDB();
-    $stmt = $db->prepare('SELECT * FROM home_videos ORDER BY sort_order ASC LIMIT ?');
-    $stmt->execute([$limit]);
-    return $stmt->fetchAll();
-}
-
 function extractYouTubeID(string $url): ?string {
     if (preg_match('/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/', $url, $m)) {
         return $m[1];
     }
     return null;
+}
+
+function getYouTubeThumbnail(string $url, string $fallback = ''): string {
+    $ytId = extractYouTubeID($url);
+    if ($ytId) {
+        return "https://img.youtube.com/vi/{$ytId}/hqdefault.jpg";
+    }
+    return $fallback;
+}
+
+function getHomeVideos(int $limit = 4): array {
+    $db = getDB();
+    $stmt = $db->prepare('SELECT * FROM home_videos ORDER BY sort_order ASC LIMIT ?');
+    $stmt->execute([$limit]);
+    $rows = $stmt->fetchAll();
+    foreach ($rows as &$row) {
+        // Automatically derive YouTube thumbnail if missing
+        if (empty($row['thumbnail_url']) && !empty($row['youtube_url'])) {
+            $row['thumbnail_url'] = getYouTubeThumbnail($row['youtube_url']);
+        }
+    }
+    return $rows;
+}
+
+function getProjects(bool $onlyEnabled = true, int $limit = 50): array {
+    $db = getDB();
+    $where = $onlyEnabled ? 'WHERE enabled = 1' : '';
+    $stmt = $db->prepare("SELECT * FROM projects {$where} ORDER BY sort_order ASC, created_at DESC LIMIT ?");
+    $stmt->execute([$limit]);
+    $rows = $stmt->fetchAll();
+    foreach ($rows as &$row) {
+        $row['enabled'] = (bool)$row['enabled'];
+        $row['sort_order'] = (int)$row['sort_order'];
+    }
+    return $rows;
+}
+
+function getProject(string $id): ?array {
+    $db = getDB();
+    $stmt = $db->prepare('SELECT * FROM projects WHERE id = ?');
+    $stmt->execute([$id]);
+    $row = $stmt->fetch();
+    if (!$row) return null;
+    $row['enabled'] = (bool)$row['enabled'];
+    $row['sort_order'] = (int)$row['sort_order'];
+    return $row;
 }
 
 function getSettingValue(string $key, string $default = ''): string {

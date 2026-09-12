@@ -19,7 +19,7 @@
                 <td>
                   <div class="vid-cell">
                     <span class="vid-title">{{ vid.title }}</span>
-                    <img :src="vid.thumbnail_url" class="vid-thumb" alt="" v-if="vid.thumbnail_url">
+                    <img :src="vid.thumbnail_url || getYoutubeThumb(vid.youtube_url)" class="vid-thumb" alt="" v-if="vid.thumbnail_url || getYoutubeThumb(vid.youtube_url)">
                   </div>
                 </td>
                 <td>
@@ -52,12 +52,18 @@
 
           <div class="form-group">
             <label class="label">YouTube URL</label>
-            <input v-model="form.youtube_url" type="text" placeholder="https://www.youtube.com/watch?v=..." class="input" required>
+            <input v-model="form.youtube_url" @input="onYoutubeChange" type="text" placeholder="https://www.youtube.com/watch?v=..." class="input" required>
           </div>
 
           <div class="form-group">
-            <label class="label">Thumbnail (Önşəkil) URL</label>
-            <input v-model="form.thumbnail_url" type="text" placeholder="https://..." class="input">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="label">Thumbnail (Önşəkil) URL</label>
+              <button type="button" @click="fetchYtThumb" style="font-size: 10px; color: var(--color-primary); background: none; border: none; cursor: pointer;">YouTube-dan çək</button>
+            </div>
+            <input v-model="form.thumbnail_url" type="text" placeholder="https://img.youtube.com/vi/..." class="input">
+            <div v-if="form.thumbnail_url || getYoutubeThumb(form.youtube_url)" style="margin-top: 8px;">
+              <img :src="form.thumbnail_url || getYoutubeThumb(form.youtube_url)" style="width: 140px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid var(--color-border);" alt="Preview">
+            </div>
           </div>
 
           <div class="form-group">
@@ -96,6 +102,34 @@ export default {
       sort_order: 0
     })
 
+    const extractYoutubeId = (url) => {
+      if (!url) return null
+      const reg = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/
+      const match = url.match(reg)
+      return match ? match[1] : null
+    }
+
+    const getYoutubeThumb = (url) => {
+      const id = extractYoutubeId(url)
+      return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ''
+    }
+
+    const onYoutubeChange = () => {
+      if (!form.thumbnail_url || form.thumbnail_url.includes('img.youtube.com')) {
+        const thumb = getYoutubeThumb(form.youtube_url)
+        if (thumb) form.thumbnail_url = thumb
+      }
+    }
+
+    const fetchYtThumb = () => {
+      const thumb = getYoutubeThumb(form.youtube_url)
+      if (thumb) {
+        form.thumbnail_url = thumb
+      } else {
+        alert('Düzgün YouTube linki daxil edin')
+      }
+    }
+
     const fetchVideos = async () => {
       try {
         const { data } = await client.get('/videos')
@@ -112,7 +146,7 @@ export default {
       editingId.value = vid.id
       form.title = vid.title
       form.youtube_url = vid.youtube_url
-      form.thumbnail_url = vid.thumbnail_url
+      form.thumbnail_url = vid.thumbnail_url || getYoutubeThumb(vid.youtube_url)
       form.sort_order = vid.sort_order
     }
 
@@ -128,6 +162,9 @@ export default {
     const save = async () => {
       saving.value = true
       try {
+        if (!form.thumbnail_url && form.youtube_url) {
+          form.thumbnail_url = getYoutubeThumb(form.youtube_url)
+        }
         if (isEdit.value) {
           await client.put(`/videos/${editingId.value}`, form)
         } else {
@@ -158,6 +195,9 @@ export default {
       isEdit,
       saving,
       form,
+      getYoutubeThumb,
+      onYoutubeChange,
+      fetchYtThumb,
       edit,
       resetForm,
       save,

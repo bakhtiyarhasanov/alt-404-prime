@@ -1,354 +1,434 @@
 <?php
 /**
- * Homepage — Hero article, video gallery, feed with tag filtering, category sections.
+ * Homepage for ALT404 Prime.
+ * Full modern redesign matching Google AI Studio app export.
  */
-$isHeroPage = true;
-$pageTitle = 'alt404 — Azərbaycan Texnologiya Mediası';
-$pageDescription = 'Azərbaycanın ən sürətli texnologiya media platforması.';
+$pageTitle = 'ALT404 | Azərbaycanın Peşəkar Texnologiya Mediası';
+$pageDescription = 'ALT404 - Azərbaycanın peşəkar texnologiya mediası — sürətli, dərin və minimal | Xəbərlər, analitik icmallar və eksklüziv layihələr';
 
-$rawArticles = getPublishedArticles(100);
+$rawArticles = getPublishedArticles(120);
 $allArticles = $rawArticles;
-
-$heroArticle = null;
-foreach ($allArticles as $index => $article) {
-  if ($article['featured']) {
-    $heroArticle = $article;
-    unset($allArticles[$index]);
-    break;
-  }
-}
-
-if (!$heroArticle) {
-  $heroArticle = array_shift($allArticles);
-} else {
-  $allArticles = array_values($allArticles);
-}
-
-$bottomRowArticles = array_slice($allArticles, 0, 5);
-$feedArticles = array_slice($allArticles, 5, 20);
-$videos = getHomeVideos(4);
-$categories = getVisibleCategories();
 
 // Tag filtering
 $activeTag = isset($_GET['tag']) ? trim($_GET['tag']) : null;
-$allTags = [];
-foreach ($rawArticles as $a) {
-  foreach ($a['tags'] as $t) {
-    $allTags[$t] = true;
-  }
-}
-$allTags = array_keys($allTags);
 
 if ($activeTag) {
-  $normalizeTag = function ($t) {
-    return strtolower(str_replace('#', '', $t)); };
-  $filtered = array_filter($allArticles, function ($a) use ($activeTag, $normalizeTag) {
-    foreach ($a['tags'] as $t) {
-      if ($normalizeTag($t) === $normalizeTag($activeTag))
-        return true;
-    }
-    return false;
-  });
-  $filtered = array_values($filtered);
+    $normalizeTag = function ($t) {
+        return mb_strtolower(str_replace('#', '', trim($t)), 'UTF-8');
+    };
+    $activeTagNorm = $normalizeTag($activeTag);
+    $filtered = array_values(array_filter($allArticles, function ($a) use ($activeTagNorm, $normalizeTag) {
+        if (!empty($a['tags']) && is_array($a['tags'])) {
+            foreach ($a['tags'] as $t) {
+                if ($normalizeTag($t) === $activeTagNorm) return true;
+            }
+        }
+        return false;
+    }));
 } else {
-  $filtered = $feedArticles;
+    $filtered = [];
 }
+
+// Ads from database
+$leaderboardAd = getAd('leaderboard');
+$inlineAd = getAd('inline');
+$hasSpotlightAd = !empty($leaderboardAd) && !empty($leaderboardAd['image_url']);
+
+// Spotlight articles: 3 if valid ad banner exists, else up to 4 articles
+$spotlightCount = $hasSpotlightAd ? 3 : 4;
+$spotlightArticles = array_slice($allArticles, 0, $spotlightCount);
+$remainingArticles = array_slice($allArticles, count($spotlightArticles));
+
+// Group remaining articles by category for category news sections
+$categories = getVisibleCategories();
+$articlesByCategory = [];
+foreach ($allArticles as $art) {
+    $c = $art['category'];
+    if (!isset($articlesByCategory[$c])) {
+        $articlesByCategory[$c] = [];
+    }
+    $articlesByCategory[$c][] = $art;
+}
+
+// Videos for VİDEOLAR section (from database, no empty placeholders)
+$videosList = getHomeVideos(4);
+
+// Special projects (LAYİHƏLƏR) from database (no empty placeholders)
+$specialProjects = getProjects(true, 12);
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<main style="min-height:100vh;background:var(--color-canvas)">
+<main class="w-full flex-1">
 
-  <?php if ($heroArticle && !$activeTag): ?>
-    <!-- ═══════════════════ HERO SECTION ═══════════════════ -->
-    <section class="hero-section" style="min-height:clamp(520px,75vh,760px)">
-      <img src="<?= e($heroArticle['image_url']) ?>" alt="<?= e($heroArticle['title']) ?>" loading="eager"
-        decoding="async" class="hero-image">
-      <div class="hero-gradient"></div>
-      <div class="dot-matrix-invert" style="position:absolute;inset:0;opacity:0.2;pointer-events:none"></div>
-
-      <div class="hero-content" style="min-height:inherit;padding-bottom:0">
-        <div style="margin:24px 0 32px">
-          <?= renderAdZone('leaderboard', 'opacity:0.7;max-width:640px') ?>
+  <?php if ($activeTag): ?>
+    <!-- ═══════════════════ TAG FILTER VIEW ═══════════════════ -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <div class="flex items-center justify-between p-3.5 rounded-lg bg-[#fcdb56]/20 border border-[#fcdb56] text-[#080117] dark:text-neutral-100 text-xs sm:text-sm font-semibold shadow-xs">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#080117] dark:text-[#fcdb56]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          <span>
+            <strong>#<?= e($activeTag) ?></strong> teqinə aid <?= count($filtered) ?> material göstərilir
+          </span>
         </div>
-
-        <div class="animate-slide-up" style="max-width:768px;padding-bottom:224px;margin-top:auto">
-          <div class="hero-meta">
-            <span class="category-badge-dark"><?= e(getCategoryLabel($heroArticle['category'])) ?></span>
-            <span style="width:1px;height:12px;background:rgba(255,255,255,0.2);display:inline-block"></span>
-            <span class="hero-date">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <?= formatDateAz($heroArticle['created_at']) ?>
-            </span>
-          </div>
-
-          <a href="/<?= e($heroArticle['category']) ?>/<?= e($heroArticle['slug']) ?>"
-            style="display:block;margin-bottom:20px">
-            <h1 class="hero-title">
-              <?= e($heroArticle['title']) ?>
-              <?php if (!empty($heroArticle['updating'])): ?>
-                <span class="live-dot" style="margin-left: 8px; vertical-align: middle;"></span>
-              <?php endif; ?>
-            </h1>
-          </a>
-
-          <p class="hero-excerpt"><?= e($heroArticle['excerpt']) ?></p>
-
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <?php foreach (array_slice($heroArticle['tags'], 0, 4) as $tag): ?>
-              <a href="/?tag=<?= urlencode($tag) ?>" class="hero-tag">#<?= e($tag) ?></a>
-            <?php endforeach; ?>
-            <a href="/<?= e($heroArticle['category']) ?>/<?= e($heroArticle['slug']) ?>" class="hero-read-btn">
-              Oxu
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round">
-                <line x1="7" y1="17" x2="17" y2="7" />
-                <polyline points="7 7 17 7 17 17" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom row cards (desktop) -->
-      <?php if (count($bottomRowArticles) > 0): ?>
-        <div style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:20;padding:0 16px 20px"
-          class="hero-bottom-desktop">
-          <div style="max-width:var(--max-width);margin:0 auto">
-            <div class="hero-bottom-row">
-              <?php foreach ($bottomRowArticles as $bc): ?>
-                <?php $bcLabel = getCategoryLabel($bc['category']); ?>
-                <a href="/<?= e($bc['category']) ?>/<?= e($bc['slug']) ?>" class="bottom-card">
-                  <div class="bottom-card-image">
-                    <?php if ($bc['image_url']): ?>
-                      <img src="<?= e($bc['image_url']) ?>" alt="<?= e($bc['title']) ?>" loading="lazy" decoding="async">
-                    <?php else: ?>
-                      <div style="width:100%;height:100%;background:rgba(255,255,255,0.04)"></div>
-                    <?php endif; ?>
-                    <div class="gradient-overlay"></div>
-                    <span class="category-badge-dark"
-                      style="position:absolute;bottom:6px;left:8px;font-size:7.5px;padding:1.5px 5px;letter-spacing:0.08em"><?= e($bcLabel) ?></span>
-                  </div>
-                  <div class="bottom-card-body">
-                    <h3 class="bottom-card-title">
-                      <?= e($bc['title']) ?>
-                      <?php if (!empty($bc['updating'])): ?>
-                        <span class="live-dot" style="margin-left: 5px; vertical-align: middle;"></span>
-                      <?php endif; ?>
-                    </h3>
-                  </div>
-                </a>
-              <?php endforeach; ?>
-            </div>
-          </div>
-        </div>
-      <?php endif; ?>
-
-      <!-- Bottom row cards (mobile) -->
-      <?php if (count($allArticles) > 0): ?>
-        <div class="hero-bottom-mobile" style="display:none;padding:16px;background:#080117">
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-            <?php foreach (array_slice($allArticles, 0, 6) as $mc): ?>
-              <a href="/<?= e($mc['category']) ?>/<?= e($mc['slug']) ?>" class="bottom-card">
-                <div class="bottom-card-image bottom-card-image--compact">
-                  <?php if ($mc['image_url']): ?>
-                    <img src="<?= e($mc['image_url']) ?>" alt="<?= e($mc['title']) ?>" loading="lazy" decoding="async">
-                  <?php else: ?>
-                    <div style="width:100%;height:100%;background:rgba(255,255,255,0.04)"></div>
-                  <?php endif; ?>
-                  <div class="gradient-overlay"></div>
-                </div>
-                <div class="bottom-card-body bottom-card-body--compact">
-                  <h3 class="bottom-card-title bottom-card-title--compact">
-                    <?= e($mc['title']) ?>
-                    <?php if (!empty($mc['updating'])): ?>
-                      <span class="live-dot" style="margin-left: 4px; vertical-align: middle;"></span>
-                    <?php endif; ?>
-                  </h3>
-                </div>
-              </a>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      <?php endif; ?>
-    </section>
-  <?php endif; ?>
-
-  <!-- ═══════════════════ VIDEO GALLERY ═══════════════════ -->
-  <?php if (count($videos) > 0 || true): ?>
-    <section class="video-section">
-      <div style="max-width:var(--max-width);margin:0 auto;padding:0 16px">
-        <div class="section-rule" style="margin-bottom:24px;border-color:rgba(252,219,86,0.35)">
-          <span
-            style="font-family:var(--font-main);font-size:11px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.1em">Günün
-            Videoları</span>
-        </div>
-
-        <?php if (count($videos) === 0): ?>
-          <div class="video-grid">
-            <?php for ($i = 0; $i < 4; $i++): ?>
-              <div
-                style="width:100%;border-radius:var(--radius-lg);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center">
-                <div
-                  style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)" stroke="none">
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
-                </div>
-              </div>
-            <?php endfor; ?>
-          </div>
-        <?php else: ?>
-          <div class="video-grid">
-            <?php foreach ($videos as $v):
-              $ytId = extractYouTubeID($v['youtube_url']);
-              $thumb = $v['thumbnail_url'] ?: ($ytId ? "https://img.youtube.com/vi/$ytId/hqdefault.jpg" : '');
-              ?>
-              <button class="video-card" data-video-url="<?= e($v['youtube_url']) ?>"
-                data-video-title="<?= e($v['title']) ?>">
-                <div class="video-card-image">
-                  <?php if ($thumb): ?>
-                    <img src="<?= e($thumb) ?>" alt="<?= e($v['title']) ?>" loading="lazy" decoding="async">
-                  <?php endif; ?>
-                  <div class="video-play-btn">
-                    <span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="none">
-                        <polygon points="5 3 19 12 5 21 5 3" />
-                      </svg>
-                    </span>
-                  </div>
-                  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6),transparent)"></div>
-                </div>
-                <p class="video-card-title"><?= e($v['title']) ?></p>
-              </button>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-      </div>
-    </section>
-  <?php endif; ?>
-
-  <!-- ═══════════════════ FEED SECTION ═══════════════════ -->
-  <div class="dot-matrix">
-    <div style="max-width:var(--max-width);margin:0 auto;padding:48px 16px">
-      <div class="feed-layout">
-
-        <aside class="feed-sidebar"><?= renderAdZone('sidebar-left') ?></aside>
-
-        <div class="feed-main">
-          <!-- Trend tags -->
-          <div>
-            <div class="trend-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FCDB56" stroke-width="2">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                <polyline points="17 6 23 6 23 12" />
-              </svg>
-              <span>Trend</span>
-            </div>
-            <div class="tag-cloud">
-              <a href="/" class="tag-pill <?= !$activeTag ? 'active' : '' ?>">#Hamısı</a>
-              <?php foreach (array_slice($allTags, 0, 16) as $tag): ?>
-                <a href="/?tag=<?= urlencode($tag) ?>"
-                  class="tag-pill <?= $activeTag === $tag ? 'active' : '' ?>">#<?= e($tag) ?></a>
-              <?php endforeach; ?>
-            </div>
-          </div>
-
-          <!-- Feed header -->
-          <div class="feed-header">
-            <div class="section-rule">
-              <span class="section-rule-title"><?= $activeTag ? '#' . e($activeTag) : 'Son Xəbərlər' ?></span>
-            </div>
-            <span class="feed-count"><?= count($filtered) ?> xəbər</span>
-          </div>
-
-          <?php if (count($filtered) === 0): ?>
-            <div style="text-align:center;padding:64px 0">
-              <p style="font-family:var(--font-main);font-size:14px;color:var(--color-text-muted)">Daha çox xəbər yoxdur.
-              </p>
-            </div>
-          <?php else: ?>
-            <!-- First 2 articles -->
-            <div class="article-grid article-grid--2col stagger animate-slide-up">
-              <?php foreach (array_slice($filtered, 0, 2) as $a): ?>
-                <?php include __DIR__ . '/_article_card.php'; ?>
-              <?php endforeach; ?>
-            </div>
-
-            <!-- Inline ad + remaining articles -->
-            <?php if (count($filtered) > 2): ?>
-              <?= renderAdZone('inline', 'height:90px;margin:0') ?>
-              <div class="article-grid article-grid--2col">
-                <?php foreach (array_slice($filtered, 2) as $a): ?>
-                  <?php include __DIR__ . '/_article_card.php'; ?>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
-          <?php endif; ?>
-
-          <?php if (!$activeTag): ?>
-            <div class="load-more-wrapper" style="margin-top: 32px; margin-bottom: 32px;">
-              <a href="/xeberler" class="load-more-btn" style="text-decoration: none;">
-                Daha çox xəbər
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </a>
-            </div>
-          <?php endif; ?>
-
-          <!-- Category sections -->
-          <?php foreach ($categories as $cat):
-            $catArticles = array_values(array_filter($allArticles, fn($a) => $a['category'] === $cat['slug']));
-            $catArticles = array_slice($catArticles, 0, 4);
-            if (empty($catArticles))
-              continue;
-            ?>
-            <section>
-              <div class="category-section-header">
-                <div class="section-rule">
-                  <span class="section-rule-title"><?= e($cat['label']) ?></span>
-                </div>
-                <a href="/<?= e($cat['slug']) ?>" class="category-see-all">
-                  Hamısı
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </a>
-              </div>
-              <div class="article-grid article-grid--2col">
-                <?php foreach ($catArticles as $a): ?>
-                  <?php include __DIR__ . '/_article_card.php'; ?>
-                <?php endforeach; ?>
-              </div>
-            </section>
-          <?php endforeach; ?>
-
-        </div>
-
-        <aside class="feed-sidebar"><?= renderAdZone('sidebar-right') ?></aside>
-
+        <a
+          href="/"
+          class="flex items-center gap-1.5 px-3 py-1 rounded bg-[#fcdb56] hover:bg-[#fcdb56]/90 text-[#080117] font-bold text-xs transition-colors shadow-xs"
+        >
+          <span>Bütün xəbərlərə qayıt</span>
+          <span>✕</span>
+        </a>
       </div>
     </div>
-  </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <?php if (empty($filtered)): ?>
+        <div class="text-center py-16 text-neutral-500">
+          <p class="text-sm font-medium">Bu teq üzrə heç bir məqalə tapılmadı.</p>
+        </div>
+      <?php else: ?>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <?php foreach ($filtered as $a): ?>
+            <?php include __DIR__ . '/_article_card.php'; ?>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+
+  <?php else: ?>
+    <!-- ═══════════════════ STANDARD HOME VIEW ═══════════════════ -->
+
+    <!-- 1. Top 4-Spotlight Hero Grid (3-4 tall articles + optional ad banner) -->
+    <?php if (!empty($spotlightArticles)): ?>
+    <section id="hero-spotlight-section" class="w-full pt-4 pb-6">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          
+          <?php foreach ($spotlightArticles as $index => $art): ?>
+            <?php 
+              $sCatLabel = getCategoryLabel($art['category']);
+              $sCleanCat = preg_replace('/\s+Xəbərləri$/iu', '', $sCatLabel);
+              $readTime = (int)($art['reading_time'] ?? 3);
+            ?>
+            <article
+              id="spotlight-card-<?= $index + 1 ?>"
+              class="group relative cursor-pointer flex flex-col bg-white dark:bg-[#120726] rounded-lg overflow-hidden border border-neutral-200/90 dark:border-[#22153e] shadow-xs hover:shadow-md hover:border-neutral-300 dark:hover:border-[#fcdb56]/60 transition-all duration-200"
+            >
+              <!-- Image container (4:5 Aspect Ratio) -->
+              <div class="relative w-full aspect-[4/5] overflow-hidden bg-neutral-900">
+                <a href="/<?= e($art['category']) ?>/<?= e($art['slug']) ?>" class="block w-full h-full">
+                  <?php if (!empty($art['image_url'])): ?>
+                    <img
+                      src="<?= e($art['image_url']) ?>"
+                      alt="<?= e($art['title']) ?>"
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                      loading="eager"
+                    />
+                  <?php else: ?>
+                    <div class="w-full h-full bg-[#140829] flex items-center justify-center text-neutral-600">
+                      <span class="text-xs font-mono">ALT404</span>
+                    </div>
+                  <?php endif; ?>
+                </a>
+
+                <!-- Gradient Overlay for Legibility -->
+                <div class="absolute inset-0 bg-gradient-to-t from-[#080117]/90 via-[#080117]/30 to-transparent pointer-events-none"></div>
+
+                <!-- Category Pill -->
+                <div class="absolute top-3 left-3 z-10 pointer-events-none">
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-xs text-[10px] font-semibold uppercase tracking-wider bg-[#fcdb56] text-[#080117] shadow-xs">
+                    <?= e($sCleanCat) ?>
+                  </span>
+                </div>
+
+                <!-- Bookmark Button -->
+                <button
+                  type="button"
+                  data-bookmark-btn
+                  data-bookmark-id="<?= e($art['id']) ?>"
+                  data-id="<?= e($art['id']) ?>"
+                  data-title="<?= e($art['title']) ?>"
+                  data-slug="<?= e($art['slug']) ?>"
+                  data-category="<?= e($art['category']) ?>"
+                  data-category-name="<?= e($sCleanCat) ?>"
+                  data-image="<?= e($art['image_url'] ?? '') ?>"
+                  data-date="<?= e(formatDateAz($art['created_at'])) ?>"
+                  class="bookmark-toggle-btn absolute top-3 right-3 z-20 p-2 rounded-full bg-black/40 hover:bg-black/80 text-white backdrop-blur-xs transition-all cursor-pointer"
+                  title="Yadda saxla"
+                  aria-label="Yadda saxla"
+                >
+                  <svg class="w-3.5 h-3.5 bookmark-icon pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                </button>
+
+                <!-- Bottom Image Overlay Details -->
+                <div class="absolute bottom-0 inset-x-0 p-4 text-white pointer-events-none">
+                  <div class="flex items-center gap-2 text-[11px] text-neutral-300 mb-1.5 font-medium">
+                    <span class="text-[#fcdb56] font-semibold"><?= $readTime ?> dəq oxu</span>
+                  </div>
+
+                  <a href="/<?= e($art['category']) ?>/<?= e($art['slug']) ?>" class="pointer-events-auto block">
+                    <h3 class="text-sm sm:text-base font-semibold leading-snug line-clamp-3 text-white group-hover:text-[#fcdb56] transition-colors">
+                      <?= e($art['title']) ?>
+                      <?php if (!empty($art['updating'])): ?>
+                        <span class="w-2 h-2 rounded-full bg-[#fcdb56] inline-block ml-1 animate-ping"></span>
+                      <?php endif; ?>
+                    </h3>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Subtitle / summary footer -->
+              <div class="p-3 bg-neutral-50/80 dark:bg-[#120726] border-t border-neutral-100 dark:border-[#22153e] flex-1 flex flex-col justify-between">
+                <p class="text-xs text-neutral-600 dark:text-neutral-300 line-clamp-2 leading-relaxed">
+                  <?= e($art['excerpt']) ?>
+                </p>
+                <div class="mt-2.5 pt-2 border-t border-neutral-200/60 dark:border-[#22153e] flex items-center justify-between text-[11px] text-neutral-500 dark:text-neutral-400 font-medium">
+                  <span class="font-mono text-neutral-400"><?= formatDateAz($art['created_at']) ?></span>
+                  <a href="/<?= e($art['category']) ?>/<?= e($art['slug']) ?>" class="text-[#080117] dark:text-[#fcdb56] font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                    <span>Oxu</span>
+                    <span>→</span>
+                  </a>
+                </div>
+              </div>
+            </article>
+          <?php endforeach; ?>
+
+          <?php if ($hasSpotlightAd): ?>
+          <!-- 4th Card: Pure Clean 4:5 Advertisement Banner -->
+          <aside
+            id="spotlight-ad-banner"
+            class="group relative flex flex-col bg-white dark:bg-[#120726] rounded-lg overflow-hidden border border-neutral-200/90 dark:border-[#22153e] shadow-xs hover:shadow-md transition-all duration-200"
+          >
+            <a
+              href="<?= e($leaderboardAd['link_url'] ?: 'https://alt404.az') ?>"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex-1 flex flex-col h-full w-full cursor-pointer relative"
+              title="Reklam"
+            >
+              <div class="relative w-full aspect-[4/5] overflow-hidden bg-neutral-100 dark:bg-neutral-900">
+                <img
+                  src="<?= e($leaderboardAd['image_url']) ?>"
+                  alt="Reklam"
+                  class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300 ease-out"
+                  loading="eager"
+                />
+                <span class="ad-label">Reklam</span>
+              </div>
+            </a>
+          </aside>
+          <?php endif; ?>
+
+        </div>
+      </div>
+    </section>
+    <?php endif; ?>
+
+    <!-- 2. VİDEOLAR Section -->
+    <?php if (!empty($videosList)): ?>
+    <section id="section-videolar" class="w-full py-6">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Section Header with Yellow Dot -->
+        <div class="flex items-center justify-between border-b border-neutral-200/90 dark:border-[#22153e] pb-2.5 mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#fcdb56] shadow-[0_0_8px_rgba(252,219,86,0.8)] animate-pulse"></span>
+            <h2 class="text-base sm:text-lg font-semibold uppercase tracking-wider text-neutral-900 dark:text-white">
+              VİDEOLAR
+            </h2>
+          </div>
+        </div>
+
+        <!-- Video Cards Grid (16:9 aspect ratio) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <?php foreach ($videosList as $idx => $vid): ?>
+            <article
+              id="card-videolar-<?= $idx + 1 ?>"
+              class="group cursor-pointer flex flex-col bg-white dark:bg-[#120726] rounded-lg overflow-hidden border border-neutral-200/80 dark:border-[#22153e] hover:border-neutral-300 dark:hover:border-[#fcdb56]/60 hover:shadow-md transition-all duration-200"
+              data-video-url="<?= e($vid['youtube_url']) ?>"
+              data-video-title="<?= e($vid['title']) ?>"
+            >
+              <!-- Thumbnail with Play Button Overlay -->
+              <div class="relative w-full aspect-video overflow-hidden bg-neutral-900">
+                <?php
+                $vThumb = !empty($vid['thumbnail_url']) ? $vid['thumbnail_url'] : getYouTubeThumbnail($vid['youtube_url'] ?? '');
+                ?>
+                <img
+                  src="<?= e($vThumb) ?>"
+                  alt="<?= e($vid['title']) ?>"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                  loading="lazy"
+                />
+                <div class="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                  <div class="w-11 h-11 rounded-full bg-[#fcdb56] text-[#080117] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5 fill-[#080117] ml-0.5" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Title Only Below Video -->
+              <div class="p-3 sm:p-3.5 flex-1 flex flex-col justify-center">
+                <h3 class="text-[13px] sm:text-sm font-semibold text-neutral-900 dark:text-white leading-snug group-hover:text-[#080117] dark:group-hover:text-[#fcdb56] transition-colors line-clamp-2">
+                  <?= e($vid['title']) ?>
+                </h3>
+              </div>
+            </article>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </section>
+    <?php endif; ?>
+
+    <!-- 3. First Hardware / Smart Device Promo Banner -->
+    <?php if (!empty($leaderboardAd) && !empty($leaderboardAd['image_url'])): ?>
+    <div class="w-full py-3 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <aside id="promo-banner-smart-device" class="relative block w-full rounded-xl overflow-hidden border border-neutral-200/80 dark:border-[#261545] shadow-2xs hover:shadow-xs hover:border-[#fcdb56]/80 transition-all">
+        <a href="<?= e($leaderboardAd['link_url'] ?: 'https://alt404.az') ?>" target="_blank" rel="noopener noreferrer" class="block w-full h-auto cursor-pointer relative">
+          <img
+            src="<?= e($leaderboardAd['image_url']) ?>"
+            alt="Texnoloji Tərəfdaş Reklam Banneri"
+            class="w-full h-auto max-h-[220px] object-cover block"
+            loading="lazy"
+          />
+          <span class="ad-label">Reklam</span>
+        </a>
+      </aside>
+    </div>
+    <?php endif; ?>
+
+    <!-- 4. Category News Sections -->
+    <?php 
+    $categoryIndex = 0;
+    foreach ($categories as $catItem): 
+        $catSlug = $catItem['slug'];
+        $catArticles = $articlesByCategory[$catSlug] ?? [];
+        if (empty($catArticles)) continue;
+        
+        $categoryIndex++;
+        $catCleanLabel = preg_replace('/\s+Xəbərləri$/iu', '', $catItem['label']);
+        $displayFour = array_slice($catArticles, 0, 4);
+    ?>
+      <section id="section-<?= e($catSlug) ?>" class="w-full py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <!-- Category Section Header -->
+          <div class="flex items-center justify-between border-b border-neutral-200/90 dark:border-[#22153e] pb-2.5 mb-4">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#fcdb56] shadow-[0_0_8px_rgba(252,219,86,0.8)]"></span>
+              <h2 class="text-base sm:text-lg font-semibold uppercase tracking-wider text-neutral-900 dark:text-white">
+                <?= e(mb_strtoupper($catCleanLabel, 'UTF-8')) ?>
+              </h2>
+            </div>
+
+            <a
+              href="/<?= e($catSlug) ?>"
+              class="flex items-center gap-1 text-xs font-bold text-neutral-900 dark:text-white hover:text-[#080117] dark:hover:text-[#fcdb56] transition-colors uppercase tracking-tight group cursor-pointer"
+            >
+              <span>Daha çox</span>
+              <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          </div>
+
+          <!-- 4 Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <?php foreach ($displayFour as $a): ?>
+              <?php include __DIR__ . '/_article_card.php'; ?>
+            <?php endforeach; ?>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Insert Second Promo Banner after 2nd Category Section -->
+      <?php if ($categoryIndex === 2 && !empty($inlineAd) && !empty($inlineAd['image_url'])): ?>
+        <div class="w-full py-3 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <aside id="promo-banner-galaxy-fold" class="relative block w-full rounded-xl overflow-hidden border border-neutral-200/80 dark:border-[#261545] shadow-2xs hover:shadow-xs hover:border-[#fcdb56]/80 transition-all">
+            <a href="<?= e($inlineAd['link_url'] ?: 'https://alt404.az') ?>" target="_blank" rel="noopener noreferrer" class="block w-full h-auto cursor-pointer relative">
+              <img
+                src="<?= e($inlineAd['image_url']) ?>"
+                alt="İnnovasiya və Rəqəmsal Həllər Reklam Banneri"
+                class="w-full h-auto max-h-[220px] object-cover block"
+                loading="lazy"
+              />
+              <span class="ad-label">Reklam</span>
+            </a>
+          </aside>
+        </div>
+      <?php endif; ?>
+
+    <?php endforeach; ?>
+
+    <!-- 5. LAYİHƏLƏR Section (ProjectsSection) -->
+    <?php if (!empty($specialProjects)): ?>
+    <section id="layiheler-section" class="w-full py-8 bg-[#080117] text-white border-y border-[#261545] my-6">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-[#261545] pb-3 mb-6">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#fcdb56] shadow-[0_0_10px_rgba(252,219,86,0.8)] animate-pulse"></span>
+            <h2 class="text-lg sm:text-xl font-semibold uppercase tracking-wider text-white">
+              LAYİHƏLƏR
+            </h2>
+          </div>
+        </div>
+
+        <!-- 6 Poster Cards Grid (9:16 aspect ratio) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          <?php foreach ($specialProjects as $idx => $proj): ?>
+            <div
+              id="project-poster-<?= $idx + 1 ?>"
+              class="group relative cursor-pointer flex flex-col rounded-lg overflow-hidden border border-[#261545] hover:border-[#fcdb56] bg-[#120726] shadow-lg hover:shadow-[#fcdb56]/10 transition-all duration-300 transform hover:-translate-y-1"
+              data-video-url="<?= e($proj['youtube_url']) ?>"
+              data-video-title="<?= e($proj['title']) ?>"
+            >
+              <div class="relative aspect-[9/16] w-full overflow-hidden bg-[#080117]">
+                <?php
+                $pThumb = !empty($proj['image']) ? $proj['image'] : getYouTubeThumbnail($proj['youtube_url'] ?? '');
+                ?>
+                <img
+                  src="<?= e($pThumb) ?>"
+                  alt="<?= e($proj['title']) ?>"
+                  class="w-full h-full object-cover object-top filter grayscale-[20%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
+                  loading="lazy"
+                />
+
+                <!-- Gradient overlays -->
+                <div class="absolute inset-0 bg-gradient-to-t from-[#080117] via-[#080117]/40 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-[#080117]/70 via-transparent to-[#080117]"></div>
+
+                <!-- Top category & duration -->
+                <div class="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-[#080117]/80 text-[#fcdb56] backdrop-blur-md border border-[#261545]">
+                    <?= e($proj['category']) ?>
+                  </span>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-mono text-neutral-300 bg-[#080117]/80 backdrop-blur-md">
+                    <?= e($proj['duration']) ?>
+                  </span>
+                </div>
+
+                <!-- Play Button on Hover -->
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                  <div class="w-12 h-12 rounded-full bg-[#fcdb56] text-[#080117] flex items-center justify-center shadow-2xl transform scale-75 group-hover:scale-100 transition-transform">
+                    <svg class="w-6 h-6 fill-[#080117] ml-0.5" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                </div>
+
+                <!-- Bottom Title -->
+                <div class="absolute bottom-0 inset-x-0 p-2.5 z-10">
+                  <h3 class="text-[12px] sm:text-[13px] font-semibold uppercase leading-tight tracking-tight text-[#fcdb56] group-hover:text-white transition-colors drop-shadow-md">
+                    <?= e($proj['title']) ?>
+                  </h3>
+                </div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+      </div>
+    </section>
+    <?php endif; ?>
+
+  <?php endif; ?>
 
 </main>
-
-<style>
-  /* Show desktop bottom row on md+ */
-  @media (min-width: 768px) {
-    .hero-bottom-desktop {
-      display: block !important;
-    }
-  }
-</style>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
