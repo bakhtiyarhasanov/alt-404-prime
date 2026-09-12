@@ -34,9 +34,9 @@ if ($method === 'POST') {
         exit;
     }
 
-    // If image is empty, auto-generate from YouTube
-    if (!$image) {
-        $image = getYouTubeThumbnail($youtube_url);
+    // If image is empty or a YouTube URL, auto-generate from YouTube
+    if (!$image || (extractYouTubeID($image) && strpos($image, 'img.youtube.com') === false)) {
+        $image = getYouTubeThumbnail($image ?: $youtube_url);
     }
 
     // Generate unique ID
@@ -79,8 +79,9 @@ if ($method === 'PUT') {
         exit;
     }
 
-    if (!$image) {
-        $image = getYouTubeThumbnail($youtube_url);
+    // If image is empty or a YouTube URL, auto-generate from YouTube
+    if (!$image || (extractYouTubeID($image) && strpos($image, 'img.youtube.com') === false)) {
+        $image = getYouTubeThumbnail($image ?: $youtube_url);
     }
 
     $stmt = $db->prepare('

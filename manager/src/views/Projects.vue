@@ -24,18 +24,25 @@
                 <td>
                   <div class="project-cell">
                     <img
-                      :src="proj.image || getYoutubeThumb(proj.youtube_url)"
+                      :src="getPosterUrl(proj)"
                       class="project-thumb"
-                      alt=""
-                      v-if="proj.image || getYoutubeThumb(proj.youtube_url)"
+                      alt="Poster"
+                      v-if="getPosterUrl(proj)"
                     />
                     <div class="project-info">
                       <span class="project-title">{{ proj.title }}</span>
                       <span class="project-subtitle" v-if="proj.subtitle">{{ proj.subtitle }}</span>
-                      <a :href="proj.youtube_url" target="_blank" class="yt-link">
-                        <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        YouTube-da bax
-                      </a>
+                      <div class="links-row">
+                        <a :href="proj.youtube_url" target="_blank" class="yt-link" title="YouTube-da bax">
+                          <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                          YouTube
+                        </a>
+                        <span class="dot-sep" v-if="getPosterUrl(proj)">•</span>
+                        <a :href="getPosterUrl(proj)" target="_blank" class="poster-link" v-if="getPosterUrl(proj)" title="Poster şəklini aç">
+                          <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                          Poster
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -107,7 +114,7 @@
               v-model="form.youtube_url"
               @input="onYoutubeChange"
               type="text"
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder="https://www.youtube.com/watch?v=... və ya https://youtube.com/shorts/..."
               class="input"
               required
             />
@@ -115,11 +122,11 @@
 
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <label class="label">Poster Şəkli URL *</label>
+              <label class="label">Poster Şəkli URL</label>
               <button
                 type="button"
                 @click="fetchYtThumb"
-                style="font-size: 10px; color: var(--color-primary); background: none; border: none; cursor: pointer;"
+                style="font-size: 10px; color: var(--color-primary); background: none; border: none; cursor: pointer; font-weight: 600;"
               >
                 YouTube-dan çək
               </button>
@@ -127,14 +134,13 @@
             <input
               v-model="form.image"
               type="text"
-              placeholder="https://... (9:16 formatlı poster və ya video şəkli)"
+              placeholder="https://img.youtube.com/vi/... (və ya fərdi şəkil linki)"
               class="input"
-              required
             />
             <!-- Poster Live Preview -->
-            <div v-if="form.image || getYoutubeThumb(form.youtube_url)" class="poster-preview-box">
+            <div v-if="getPosterUrl(form.image, form.youtube_url)" class="poster-preview-box">
               <span class="preview-label">Önbaxış (Poster):</span>
-              <img :src="form.image || getYoutubeThumb(form.youtube_url)" class="poster-preview-img" alt="Poster Preview" />
+              <img :src="getPosterUrl(form.image, form.youtube_url)" class="poster-preview-img" alt="Poster Preview" />
             </div>
           </div>
 
@@ -176,7 +182,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import client from '../api/client'
 
 export default {
@@ -201,25 +207,104 @@ export default {
 
     const extractYoutubeId = (url) => {
       if (!url) return null
-      const reg = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/
-      const match = url.match(reg)
-      return match ? match[1] : null
+      let clean = String(url).trim()
+      clean = clean.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/^["'`]|["'`]$/g, '')
+      if (!clean) return null
+      if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean
+
+      // Shorts URLs (matches /shorts/ID, including @channel/shorts/ID, youtu.be/shorts/ID)
+      const shortsMatch = clean.match(/\/shorts\/([a-zA-Z0-9_-]{11})/i)
+      if (shortsMatch) return shortsMatch[1]
+
+      // youtu.be/ID
+      const youtuBeMatch = clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i)
+      if (youtuBeMatch) return youtuBeMatch[1]
+
+      // /embed/ID, /v/ID, /vi/ID, /live/ID
+      const pathMatch = clean.match(/\/(?:embed|v|vi|live)\/([a-zA-Z0-9_-]{11})/i)
+      if (pathMatch) return pathMatch[1]
+
+      // ?v=ID or &v=ID
+      const queryMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/i)
+      if (queryMatch) return queryMatch[1]
+
+      // Generic youtube domain pattern
+      const genericMatch = clean.match(/(?:youtube(?:-nocookie)?\.com|youtu\.be).*(?:[\/=])([a-zA-Z0-9_-]{11})/i)
+      if (genericMatch) return genericMatch[1]
+
+      return null
+    }
+
+    const isShortsUrl = (url) => {
+      if (!url) return false
+      const clean = String(url).toLowerCase()
+      return clean.includes('shorts') || clean.includes('/oar2.jpg')
     }
 
     const getYoutubeThumb = (url) => {
       const id = extractYoutubeId(url)
-      return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ''
+      if (!id) return ''
+      if (isShortsUrl(url)) {
+        return `https://img.youtube.com/vi/${id}/oar2.jpg`
+      }
+      return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
+    }
+
+    // Resolves an image URL or youtube link to a reliable, clean poster image URL
+    const getPosterUrl = (itemOrUrl, fallbackYtUrl = '') => {
+      if (!itemOrUrl && !fallbackYtUrl) return ''
+      const img = (typeof itemOrUrl === 'object' ? itemOrUrl?.image : itemOrUrl) || ''
+      const yt = (typeof itemOrUrl === 'object' ? itemOrUrl?.youtube_url : fallbackYtUrl) || ''
+
+      // If img is already an actual image URL (and NOT a youtube video watch/shorts link)
+      if (img && !img.includes('youtube.com/watch') && !img.includes('youtube.com/shorts') && !img.includes('youtu.be/')) {
+        return img
+      }
+
+      // If img or yt is a YouTube URL, extract thumbnail
+      const target = (img && (img.includes('youtube') || img.includes('youtu.be'))) ? img : yt
+      return getYoutubeThumb(target)
     }
 
     const onYoutubeChange = () => {
-      if (!form.image || form.image.includes('img.youtube.com')) {
-        const thumb = getYoutubeThumb(form.youtube_url)
-        if (thumb) form.image = thumb
+      const url = (form.youtube_url || '').trim()
+      if (!url) return
+      const thumb = getYoutubeThumb(url)
+      if (thumb && (!form.image || form.image.includes('img.youtube.com') || form.image.includes('youtube') || form.image.includes('youtu.be') || extractYoutubeId(form.image))) {
+        form.image = thumb
       }
     }
 
+    // Automatically sync Poster URL when YouTube URL changes
+    watch(
+      () => form.youtube_url,
+      (newUrl) => {
+        if (!newUrl) return
+        onYoutubeChange()
+      }
+    )
+
+    // If user accidentally pastes a YouTube watch/shorts video link directly into the Poster field, convert it to image URL
+    watch(
+      () => form.image,
+      (newImg) => {
+        if (!newImg) return
+        if (newImg.includes('youtube.com/watch') || newImg.includes('youtube.com/shorts') || newImg.includes('youtu.be/')) {
+          const thumb = getYoutubeThumb(newImg)
+          if (thumb) {
+            form.image = thumb
+          }
+        }
+      }
+    )
+
     const fetchYtThumb = () => {
-      const thumb = getYoutubeThumb(form.youtube_url)
+      const target = (form.youtube_url || form.image || '').trim()
+      if (!target) {
+        alert('Zəhmət olmasa əvvəlcə YouTube video keçidini daxil edin')
+        return
+      }
+      const thumb = getYoutubeThumb(target)
       if (thumb) {
         form.image = thumb
       } else {
@@ -244,9 +329,10 @@ export default {
       form.title = proj.title
       form.subtitle = proj.subtitle || ''
       form.category = proj.category || 'EKSPERİMENT'
-      form.image = proj.image || getYoutubeThumb(proj.youtube_url)
       form.duration = proj.duration || '15:00'
-      form.youtube_url = proj.youtube_url
+      form.youtube_url = proj.youtube_url || ''
+      // Crucial: ensure form.image displays the actual poster image URL, NOT a youtube video link
+      form.image = getPosterUrl(proj)
       form.description = proj.description || ''
       form.sort_order = proj.sort_order || 0
       form.enabled = typeof proj.enabled !== 'undefined' ? Boolean(proj.enabled) : true
@@ -269,8 +355,8 @@ export default {
     const save = async () => {
       saving.value = true
       try {
-        if (!form.image && form.youtube_url) {
-          form.image = getYoutubeThumb(form.youtube_url)
+        if (!form.image || form.image.includes('youtube.com/watch') || form.image.includes('youtube.com/shorts') || form.image.includes('youtu.be/')) {
+          form.image = getPosterUrl(form.image, form.youtube_url)
         }
         if (isEdit.value) {
           await client.put(`/projects/${editingId.value}`, form)
@@ -303,8 +389,10 @@ export default {
       saving,
       form,
       getYoutubeThumb,
-      onYoutubeChange,
+      getPosterUrl,
       fetchYtThumb,
+      onYoutubeChange,
+      isShortsUrl,
       edit,
       resetForm,
       save,
@@ -413,6 +501,28 @@ export default {
   margin-top: 2px;
 }
 .yt-link:hover {
+  text-decoration: underline;
+}
+.links-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+.dot-sep {
+  color: var(--color-border);
+  font-size: 10px;
+}
+.poster-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.poster-link:hover {
+  color: var(--color-primary);
   text-decoration: underline;
 }
 .icon-inline {

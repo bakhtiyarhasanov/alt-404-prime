@@ -76,7 +76,7 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 
     <!-- 2. Article Container Card -->
-    <article class="bg-white dark:bg-[#0e041d] rounded-2xl border border-neutral-200 dark:border-[#261545] p-5 sm:p-8 md:p-10 shadow-xs">
+    <article class="bg-white dark:bg-[#0e041d] rounded-2xl border border-neutral-200 dark:border-[#261545] p-5 sm:p-8 md:p-10 shadow-xs mb-10 sm:mb-14">
       
       <!-- Category Badge -->
       <div class="mb-4">
@@ -109,7 +109,7 @@ require_once __DIR__ . '/../includes/header.php';
           <span class="text-neutral-600 dark:text-neutral-300 font-medium"><?= formatDateAz($article['created_at']) ?></span>
         </span>
         <span class="text-neutral-300 dark:text-neutral-700">•</span>
-        <span class="text-[#080117] dark:text-[#fcdb56] font-semibold font-mono"><?= e($readingTime) ?> oxu</span>
+        <span class="text-[#080117] dark:text-[#fcdb56] font-semibold font-mono"><?= e($readingTime) ?> dəq. oxu</span>
       </div>
 
       <!-- Hero Article Image -->
@@ -147,16 +147,17 @@ require_once __DIR__ . '/../includes/header.php';
       <?php endif; ?>
 
       <!-- Promo Ad Banner -->
-      <?php if (!empty($inlineAd) && !empty($inlineAd['image_url'])): ?>
+      <?php if (!empty($inlineAd) && !empty($inlineAd['enabled']) && !empty($inlineAd['image_url'])): ?>
       <aside id="article-promo-banner" class="mt-8 pt-4">
-        <div class="block w-full rounded-xl overflow-hidden border border-neutral-200/80 dark:border-[#261545] shadow-2xs hover:border-[#fcdb56]/80 transition-all">
-          <a href="<?= e($inlineAd['link_url'] ?: 'https://alt404.az') ?>" target="_blank" rel="noopener noreferrer" class="block w-full">
+        <div class="block w-full rounded-xl overflow-hidden border border-neutral-200/80 dark:border-[#261545] shadow-2xs hover:border-[#fcdb56]/80 transition-all relative">
+          <a href="<?= e($inlineAd['link_url'] ?: 'https://alt404.az') ?>" target="_blank" rel="noopener noreferrer" class="block w-full cursor-pointer relative">
             <img
               src="<?= e($inlineAd['image_url']) ?>"
               alt="Reklam Banneri"
               class="w-full h-auto max-h-[160px] sm:max-h-[180px] object-cover block"
               loading="lazy"
             />
+            <span class="ad-label">Reklam</span>
           </a>
         </div>
       </aside>
@@ -166,7 +167,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     <!-- 3. Related Articles -->
     <?php if (count($related) > 0): ?>
-      <section class="mt-12">
+      <section class="mt-10 sm:mt-14">
         <div class="flex items-center justify-between gap-4 mb-5 pb-3 border-b border-neutral-200/80 dark:border-[#261545]">
           <h2 class="text-sm font-bold uppercase tracking-wider text-[#080117] dark:text-white flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-[#fcdb56]"></span>

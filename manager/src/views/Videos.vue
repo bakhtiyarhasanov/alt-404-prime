@@ -52,7 +52,7 @@
 
           <div class="form-group">
             <label class="label">YouTube URL</label>
-            <input v-model="form.youtube_url" @input="onYoutubeChange" type="text" placeholder="https://www.youtube.com/watch?v=..." class="input" required>
+            <input v-model="form.youtube_url" @input="onYoutubeChange" type="text" placeholder="https://www.youtube.com/watch?v=... və ya https://youtube.com/shorts/..." class="input" required>
           </div>
 
           <div class="form-group">
@@ -104,25 +104,60 @@ export default {
 
     const extractYoutubeId = (url) => {
       if (!url) return null
-      const reg = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/
-      const match = url.match(reg)
-      return match ? match[1] : null
+      let clean = String(url).trim()
+      clean = clean.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/^["'`]|["'`]$/g, '')
+      if (!clean) return null
+      if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean
+
+      const shortsMatch = clean.match(/\/shorts\/([a-zA-Z0-9_-]{11})/i)
+      if (shortsMatch) return shortsMatch[1]
+
+      const youtuBeMatch = clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i)
+      if (youtuBeMatch) return youtuBeMatch[1]
+
+      const pathMatch = clean.match(/\/(?:embed|v|vi|live)\/([a-zA-Z0-9_-]{11})/i)
+      if (pathMatch) return pathMatch[1]
+
+      const queryMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/i)
+      if (queryMatch) return queryMatch[1]
+
+      const genericMatch = clean.match(/(?:youtube(?:-nocookie)?\.com|youtu\.be).*(?:[\/=])([a-zA-Z0-9_-]{11})/i)
+      if (genericMatch) return genericMatch[1]
+
+      return null
+    }
+
+    const isShortsUrl = (url) => {
+      if (!url) return false
+      const clean = String(url).toLowerCase()
+      return clean.includes('shorts') || clean.includes('/oar2.jpg')
     }
 
     const getYoutubeThumb = (url) => {
       const id = extractYoutubeId(url)
-      return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ''
+      if (!id) return ''
+      if (isShortsUrl(url)) {
+        return `https://img.youtube.com/vi/${id}/oar2.jpg`
+      }
+      return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
     }
 
     const onYoutubeChange = () => {
+      const url = (form.youtube_url || '').trim()
+      if (!url) return
       if (!form.thumbnail_url || form.thumbnail_url.includes('img.youtube.com')) {
-        const thumb = getYoutubeThumb(form.youtube_url)
+        const thumb = getYoutubeThumb(url)
         if (thumb) form.thumbnail_url = thumb
       }
     }
 
     const fetchYtThumb = () => {
-      const thumb = getYoutubeThumb(form.youtube_url)
+      const target = (form.youtube_url || form.thumbnail_url || '').trim()
+      if (!target) {
+        alert('Zəhmət olmasa əvvəlcə YouTube video keçidini daxil edin')
+        return
+      }
+      const thumb = getYoutubeThumb(target)
       if (thumb) {
         form.thumbnail_url = thumb
       } else {

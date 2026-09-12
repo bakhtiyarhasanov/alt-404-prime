@@ -17,21 +17,8 @@ $navCategories = getVisibleCategories();
 $publishedArticles = getPublishedArticles(80);
 $tickerArticles = array_slice($publishedArticles, 0, 10);
 
-// Rank top tags from published articles
-$tagCounts = [];
-foreach ($publishedArticles as $pa) {
-    if (!empty($pa['tags']) && is_array($pa['tags'])) {
-        foreach ($pa['tags'] as $t) {
-            $cleaned = trim($t);
-            if ($cleaned === '') continue;
-            $formatted = strpos($cleaned, '#') === 0 ? $cleaned : ('#' . $cleaned);
-            $lower = mb_strtolower($formatted, 'UTF-8');
-            $tagCounts[$lower] = ($tagCounts[$lower] ?? 0) + 1;
-        }
-    }
-}
-arsort($tagCounts);
-$topRankedTags = array_slice(array_keys($tagCounts), 0, 12);
+// Rank top tags from published articles during the last 3 days (10 max)
+$topRankedTags = getTopTags(3, 10);
 
 // Light JSON articles for client search and bookmarks drawer
 $clientArticlesJson = json_encode(array_map(function($a) {
@@ -61,9 +48,12 @@ $clientArticlesJson = json_encode(array_map(function($a) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= e($pageTitle) ?></title>
   <meta name="description" content="<?= e($pageDescription) ?>">
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="/assets/img/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tomorrow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="/assets/css/style.css">
 
   <!-- Immediate Theme Check to avoid FOUC -->
@@ -165,7 +155,7 @@ $clientArticlesJson = json_encode(array_map(function($a) {
         // Render tags duplicated for smooth loop
         $tagsLoop = array_merge($topRankedTags, $topRankedTags, $topRankedTags);
         foreach ($tagsLoop as $idx => $tag): 
-          $isCurrentTag = ($activeTag && strtolower(str_replace('#', '', $activeTag)) === strtolower(str_replace('#', '', $tag)));
+          $isCurrentTag = ($activeTag && mb_strtolower(str_replace('#', '', $activeTag), 'UTF-8') === mb_strtolower(str_replace('#', '', $tag), 'UTF-8'));
           $tagUrl = '/?tag=' . urlencode(str_replace('#', '', $tag));
         ?>
           <a

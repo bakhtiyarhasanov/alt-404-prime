@@ -664,29 +664,145 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 5. VIDEO MODAL PLAYER
+  // 5. VIDEO MODAL PLAYER (LANDSCAPE & SHORTS FORMATS)
   // ═══════════════════════════════════════════════════════════════════════════
   function initVideoModal() {
     const videoModal = document.getElementById('video-player-modal');
+    const videoDialog = document.getElementById('video-modal-dialog');
+    const videoEmbedContainer = document.getElementById('video-embed-container');
+    const videoBadge = document.getElementById('video-modal-type-badge');
     const videoIframe = document.getElementById('video-player-iframe');
+    const videoNative = document.getElementById('video-player-native');
     const videoTitle = document.getElementById('video-player-title') || document.getElementById('video-modal-title');
+    const videoSubtitle = document.getElementById('video-player-subtitle');
+    const videoYtBtn = document.getElementById('video-modal-yt-btn');
     const closeBtn = document.getElementById('video-modal-close-btn');
 
-    function openVideo(url, title) {
-      if (!videoModal || !videoIframe) return;
-      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-      if (match) {
-        videoIframe.src = `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0`;
-        if (videoTitle) videoTitle.textContent = title || 'Video İcmal';
-        videoModal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+    function extractYtId(url) {
+      if (!url) return null;
+      let clean = String(url).trim().replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/^["'`]|["'`]$/g, '');
+      if (!clean) return null;
+      if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean;
+      const shortsMatch = clean.match(/\/shorts\/([a-zA-Z0-9_-]{11})/i);
+      if (shortsMatch) return shortsMatch[1];
+      const youtuBeMatch = clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
+      if (youtuBeMatch) return youtuBeMatch[1];
+      const pathMatch = clean.match(/\/(?:embed|v|vi|live)\/([a-zA-Z0-9_-]{11})/i);
+      if (pathMatch) return pathMatch[1];
+      const queryMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
+      if (queryMatch) return queryMatch[1];
+      const genericMatch = clean.match(/(?:youtube(?:-nocookie)?\.com|youtu\.be).*(?:[\/=])([a-zA-Z0-9_-]{11})/i);
+      if (genericMatch) return genericMatch[1];
+      return null;
+    }
+
+    function openVideo(url, title, opts = {}) {
+      if (!videoModal) return;
+      const clean = String(url || '').trim();
+      const ytId = extractYtId(clean);
+      const isShorts = opts.format === 'shorts' || clean.toLowerCase().includes('/shorts/') || opts.isProject;
+
+      // 1. Configure layout dimensions & classes
+      if (videoDialog && videoEmbedContainer) {
+        if (isShorts) {
+          // Shorts format (9:16 vertical ratio)
+          videoDialog.classList.add('video-modal-shorts-dialog');
+          videoDialog.classList.remove('video-modal-landscape-dialog', 'max-w-4xl');
+          videoEmbedContainer.classList.add('video-modal-shorts-container');
+          videoEmbedContainer.classList.remove('video-modal-landscape-container', 'aspect-video');
+          if (videoBadge) {
+            videoBadge.textContent = opts.category ? (opts.category + ' // SHORTS') : 'LAYİHƏ // SHORTS';
+          }
+        } else {
+          // Standard landscape format (16:9 widescreen)
+          videoDialog.classList.add('video-modal-landscape-dialog', 'max-w-4xl');
+          videoDialog.classList.remove('video-modal-shorts-dialog');
+          videoEmbedContainer.classList.add('video-modal-landscape-container', 'aspect-video');
+          videoEmbedContainer.classList.remove('video-modal-shorts-container');
+          if (videoBadge) {
+            videoBadge.textContent = 'YOUTUBE VİDEO';
+          }
+        }
       }
+
+      // 2. Populate text info
+      if (videoTitle) {
+        videoTitle.textContent = title || (isShorts ? 'Xüsusi Layihə' : 'Video İcmal');
+      }
+      if (videoSubtitle) {
+        const subText = opts.subtitle || opts.description || '';
+        if (subText) {
+          videoSubtitle.textContent = subText;
+          videoSubtitle.classList.remove('hidden');
+        } else {
+          videoSubtitle.classList.add('hidden');
+        }
+      }
+
+      // 3. Load media
+      if (ytId) {
+        const embedUrl = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&playsinline=1&enablejsapi=1`;
+        if (videoIframe) {
+          videoIframe.src = embedUrl;
+          videoIframe.style.display = 'block';
+        }
+        if (videoNative) {
+          videoNative.style.display = 'none';
+          videoNative.pause();
+          videoNative.src = '';
+        }
+        if (videoYtBtn) {
+          videoYtBtn.href = isShorts ? `https://www.youtube.com/shorts/${ytId}` : `https://www.youtube.com/watch?v=${ytId}`;
+          videoYtBtn.classList.remove('hidden');
+          videoYtBtn.classList.add('inline-flex');
+        }
+      } else if (clean.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i)) {
+        // Direct video source
+        if (videoIframe) {
+          videoIframe.style.display = 'none';
+          videoIframe.src = '';
+        }
+        if (videoNative) {
+          videoNative.src = clean;
+          videoNative.style.display = 'block';
+          videoNative.play().catch(() => {});
+        }
+        if (videoYtBtn) {
+          videoYtBtn.classList.add('hidden');
+          videoYtBtn.classList.remove('inline-flex');
+        }
+      } else if (clean) {
+        // Fallback: load raw URL in iframe
+        if (videoIframe) {
+          videoIframe.src = clean;
+          videoIframe.style.display = 'block';
+        }
+        if (videoNative) {
+          videoNative.style.display = 'none';
+          videoNative.pause();
+          videoNative.src = '';
+        }
+        if (videoYtBtn) {
+          videoYtBtn.href = clean;
+          videoYtBtn.classList.remove('hidden');
+          videoYtBtn.classList.add('inline-flex');
+        }
+      }
+
+      videoModal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
     }
 
     function closeVideo() {
-      if (!videoModal || !videoIframe) return;
+      if (!videoModal) return;
       videoModal.style.display = 'none';
-      videoIframe.src = '';
+      if (videoIframe) {
+        videoIframe.src = '';
+      }
+      if (videoNative) {
+        videoNative.pause();
+        videoNative.src = '';
+      }
       document.body.style.overflow = '';
     }
 
@@ -696,7 +812,12 @@
         e.preventDefault();
         const url = trigger.dataset.videoUrl;
         const title = trigger.dataset.videoTitle || '';
-        openVideo(url, title);
+        const isProject = !!trigger.closest('#layiheler-section') || (trigger.id && trigger.id.startsWith('project-poster-'));
+        const format = trigger.dataset.videoFormat || (isProject ? 'shorts' : (url && url.includes('/shorts/') ? 'shorts' : 'landscape'));
+        const category = trigger.dataset.videoCategory || '';
+        const subtitle = trigger.dataset.videoSubtitle || '';
+        const description = trigger.dataset.videoDescription || '';
+        openVideo(url, title, { format, isProject, category, subtitle, description });
       }
     });
 
@@ -779,13 +900,44 @@
 
     // Newsletter submit
     const newsletterForm = document.getElementById('newsletter-form');
+    const newsletterSubmitBtn = document.getElementById('newsletter-submit-btn');
     if (newsletterForm) {
-      newsletterForm.addEventListener('submit', function (e) {
+      newsletterForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         const input = document.getElementById('newsletter-email');
         if (input && input.value) {
-          window.showToast('Bülletenimizə abunə olduğunuz üçün təşəkkür edirik!');
-          input.value = '';
+          const originalBtnText = newsletterSubmitBtn ? newsletterSubmitBtn.innerHTML : null;
+          if (newsletterSubmitBtn) {
+             newsletterSubmitBtn.disabled = true;
+             newsletterSubmitBtn.innerHTML = '<span class="w-4 h-4 border-2 border-[#080117] border-t-transparent rounded-full animate-spin"></span>';
+          }
+          try {
+            const formData = new FormData();
+            formData.append('email', input.value);
+            const response = await fetch('/api/newsletter.php', {
+              method: 'POST',
+              body: formData
+            });
+            const result = await response.json();
+            if (result.success) {
+              window.showToast('Bülletenimizə abunə olduğunuz üçün təşəkkür edirik!');
+              input.value = '';
+              const successBox = document.getElementById('newsletter-success-box');
+              if (successBox) {
+                successBox.style.display = 'flex';
+                newsletterForm.style.display = 'none';
+              }
+            } else {
+              window.showToast(result.error || 'Xəta baş verdi.');
+            }
+          } catch (error) {
+            window.showToast('Bağlantı xətası. Yenidən cəhd edin.');
+          } finally {
+            if (newsletterSubmitBtn && originalBtnText) {
+              newsletterSubmitBtn.disabled = false;
+              newsletterSubmitBtn.innerHTML = originalBtnText;
+            }
+          }
         }
       });
     }

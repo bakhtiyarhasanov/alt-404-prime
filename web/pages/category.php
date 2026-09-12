@@ -18,6 +18,7 @@ $pageDescription = $seoDescription;
 
 $articles = getArticlesByCategorySlugs($categorySlug, 100);
 $activeTag = isset($_GET['tag']) ? trim($_GET['tag']) : null;
+$categoryAd = getAd('category-banner');
 
 // Collect top 20 tags sorted by count
 $tagCounts = [];
@@ -133,6 +134,21 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
       <?php endif; ?>
     </div>
+
+    <!-- 3.5. Category Promo Banner (if enabled) -->
+    <?php if (!empty($categoryAd) && !empty($categoryAd['enabled']) && !empty($categoryAd['image_url'])): ?>
+      <div class="w-full mb-8">
+        <aside id="category-promo-banner"
+          class="relative block w-full rounded-xl overflow-hidden border border-neutral-200/80 dark:border-[#261545] shadow-2xs hover:shadow-xs hover:border-[#fcdb56]/80 transition-all">
+          <a href="<?= e($categoryAd['link_url'] ?: '#') ?>" target="_blank" rel="noopener noreferrer"
+            class="block w-full h-auto cursor-pointer relative">
+            <img src="<?= e($categoryAd['image_url']) ?>" alt="Reklam Banneri"
+              class="w-full h-auto max-h-[200px] object-cover block" loading="lazy" />
+            <span class="ad-label">Reklam</span>
+          </a>
+        </aside>
+      </div>
+    <?php endif; ?>
 
     <!-- 4. Article Catalog Grid -->
     <?php if (count($filtered) === 0): ?>

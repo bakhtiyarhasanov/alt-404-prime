@@ -185,11 +185,12 @@ ON DUPLICATE KEY UPDATE `slug` = `slug`;
 
 -- Default ad zones
 INSERT INTO `ads` (`id`, `label`, `enabled`, `image_url`, `link_url`, `width`, `height`) VALUES
-  ('leaderboard', 'Leaderboard (üst banner)', 1, 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&cs=tinysrgb&w=900&h=90&fit=crop', '#', 900, 90),
-  ('sidebar-left', 'Sol Panel', 1, 'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=160&h=600&fit=crop', '#', 160, 600),
-  ('sidebar-right', 'Sağ Panel', 1, 'https://images.pexels.com/photos/2599244/pexels-photo-2599244.jpeg?auto=compress&cs=tinysrgb&w=160&h=600&fit=crop', '#', 160, 600),
-  ('inline', 'Xəbər içi reklam', 1, 'https://images.pexels.com/photos/7974/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=728&h=90&fit=crop', '#', 728, 90)
-ON DUPLICATE KEY UPDATE `id` = `id`;
+  ('spotlight', 'Spotlight Banner (Ana Səhifə 4-cü Kart)', 1, 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&cs=tinysrgb&w=600&h=750&fit=crop', '#', 400, 500),
+  ('leaderboard', '1-ci Əsas Banner (Ana Səhifə - Üst)', 1, 'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=1200&h=200&fit=crop', '#', 1200, 200),
+  ('home-promo-2', '2-ci Promo Banner (Ana Səhifə - Bölmələrarası)', 1, 'https://images.pexels.com/photos/2599244/pexels-photo-2599244.jpeg?auto=compress&cs=tinysrgb&w=1200&h=200&fit=crop', '#', 1200, 200),
+  ('inline', 'Məqalə İçi Reklam (Məqalə Səhifəsi)', 1, 'https://images.pexels.com/photos/7974/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=800&h=160&fit=crop', '#', 800, 160),
+  ('category-banner', 'Kateqoriya Səhifəsi Banneri', 1, 'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=1200&h=200&fit=crop', '#', 1200, 200)
+ON DUPLICATE KEY UPDATE `label` = VALUES(`label`), `width` = VALUES(`width`), `height` = VALUES(`height`);
 
 -- Default administrator (admin@alt404.com / 123456789)
 INSERT INTO `admin_users` (`email`, `name`, `password`) VALUES

@@ -40,11 +40,15 @@
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Müraciətlər
         </router-link>
+        <router-link to="/subscribers" class="nav-item" active-class="active">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Abunəçilər
+        </router-link>
         <router-link v-if="user && user.role === 'editor'" to="/users" class="nav-item" active-class="active">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           İstifadəçilər
         </router-link>
-        <a href="http://localhost:5174" target="_blank" class="nav-item nav-ai-writer">
+        <a href="https://ai.alt404.az" target="_blank" class="nav-item nav-ai-writer">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><rect x="3" y="10" width="18" height="12" rx="4"/></svg>
           AI Writer
           <span style="font-size: 0.65rem; background: rgba(252, 219, 86, 0.2); color: #FCDB56; padding: 2px 6px; border-radius: 4px; margin-left: auto;">YENİ</span>
@@ -127,6 +131,7 @@ export default {
         Ads: 'Reklam Bannerləri',
         Media: 'Media Kitabxanası',
         Contacts: 'Əlaqə Müraciətləri',
+        Subscribers: 'Abunəçilər',
         Videos: 'Videolar',
         Projects: 'Xüsusi Layihələr',
         Users: 'İstifadəçilər',
