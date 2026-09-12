@@ -27,9 +27,19 @@
             <textarea v-model="form.excerpt" rows="3" placeholder="Qısa məzmun xülasəsi..." class="input" :disabled="isEditingDisabled"></textarea>
           </div>
 
+          
+
           <div class="form-group">
             <label class="label">Əsas Məzmun (Zəngin Mətn Redaktoru)</label>
             <div ref="editorElement" class="quill-editor-container"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="label">Xüsusi KOD</label>
+            <textarea v-model="form.code" rows="3" placeholder="HTML, iframe və ya embed kodu..." class="input code-editor" :disabled="isEditingDisabled"></textarea>
+            <div class="help-text text-xs text-neutral-400 mt-1">
+              <strong>İstifadə qaydası:</strong> Əsas məzmunun (Content) içində istədiyiniz yerə <code>&#123;&#123;code&#125;&#125;</code> yazın. Məsələn: <em>"Bu xəbərdə ətraflı məlumat aşağıdadır: &#123;&#123;code&#125;&#125; Başqa mətn..."</em>. Yazdığınız kod (iframe, video, reklam və s.) saytda o hissədə göstəriləcək.
+            </div>
           </div>
         </div>
 
@@ -102,6 +112,11 @@
           <div class="form-group check-group">
             <input v-model="form.published" type="checkbox" id="published" :disabled="isEditingDisabled || user.role === 'reporter'">
             <label for="published" class="check-label">Dərc edilsin <span v-if="user.role === 'reporter'" class="role-note">(Redaktor təsdiqi lazımdır)</span></label>
+          </div>
+
+          <div class="form-group check-group">
+            <input v-model="form.newsletter" type="checkbox" id="newsletter" :disabled="isEditingDisabled">
+            <label for="newsletter" class="check-label">Bülleten (Newsletter)</label>
           </div>
 
           <div class="form-group check-group">
@@ -181,6 +196,8 @@ export default {
       published: true,
       featured: false,
       updating: false,
+      newsletter: false,
+      code: '',
       start_time: '',
       end_time: '',
       versions: [],
@@ -216,6 +233,8 @@ export default {
         form.published = data.published
         form.featured = data.featured
         form.updating = data.updating
+        form.newsletter = data.newsletter
+        form.code = data.code || ''
         form.versions = data.versions || []
         form.creator_name = data.creator_name || ''
         form.history = data.history || []
@@ -302,6 +321,8 @@ export default {
         published: user.value.role === 'reporter' ? false : form.published,
         featured: user.value.role === 'reporter' ? false : form.featured,
         updating: form.updating,
+        newsletter: form.newsletter,
+        code: form.code,
         start_time: form.start_time || null,
         end_time: form.end_time || null,
         tags
@@ -399,6 +420,8 @@ export default {
         featured: 'Seçilmiş',
         published: 'Dərc Durumu',
         updating: 'Yenilənir',
+        newsletter: 'Bülleten',
+        code: 'KOD',
         tags: 'Teqlər'
       }
       return fieldTranslations[field] || field

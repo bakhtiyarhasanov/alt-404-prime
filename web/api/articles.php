@@ -22,6 +22,7 @@ if ($method === 'GET') {
             $article['featured'] = (bool) $article['featured'];
             $article['published'] = (bool) $article['published'];
             $article['updating'] = (bool) ($article['updating'] ?? false);
+            $article['newsletter'] = (bool) ($article['newsletter'] ?? false);
             $article['versions'] = json_decode($article['versions'] ?? '[]', true) ?: [];
 
             // Fetch edit history
@@ -47,7 +48,7 @@ if ($method === 'GET') {
     } else {
         // Return list with creator details
         $stmt = $db->query('
-            SELECT a.id, a.title, a.slug, a.excerpt, a.category, a.image_url, a.tags, a.featured, a.published, a.updating, a.reading_time, a.start_time, a.end_time, a.views, a.created_at, a.updated_at, a.created_by, u.name as creator_name, JSON_LENGTH(a.versions) as version_count
+            SELECT a.id, a.title, a.slug, a.excerpt, a.category, a.image_url, a.tags, a.featured, a.published, a.updating, a.newsletter, a.code, a.reading_time, a.start_time, a.end_time, a.views, a.created_at, a.updated_at, a.created_by, u.name as creator_name, JSON_LENGTH(a.versions) as version_count
             FROM articles a
             LEFT JOIN admin_users u ON a.created_by = u.id
             ORDER BY a.created_at DESC
@@ -58,6 +59,7 @@ if ($method === 'GET') {
             $row['featured'] = (bool) $row['featured'];
             $row['published'] = (bool) $row['published'];
             $row['updating'] = (bool) ($row['updating'] ?? false);
+            $row['newsletter'] = (bool) ($row['newsletter'] ?? false);
         }
         echo json_encode($rows);
     }
@@ -80,6 +82,8 @@ if ($method === 'POST') {
     $featured = !empty($input['featured']) ? 1 : 0;
     $published = isset($input['published']) ? (!empty($input['published']) ? 1 : 0) : 1;
     $updating = !empty($input['updating']) ? 1 : 0;
+    $newsletter = !empty($input['newsletter']) ? 1 : 0;
+    $code = $input['code'] ?? '';
     $start_time = !empty($input['start_time']) ? $input['start_time'] : null;
     $end_time = !empty($input['end_time']) ? $input['end_time'] : null;
 
@@ -125,8 +129,8 @@ if ($method === 'POST') {
     ]);
 
     $stmt = $db->prepare('
-        INSERT INTO articles (title, slug, excerpt, content, category, image_url, tags, featured, published, updating, reading_time, start_time, end_time, versions, created_by)
-        VALUES (:title, :slug, :excerpt, :content, :category, :image_url, :tags, :featured, :published, :updating, :reading_time, :start_time, :end_time, :versions, :created_by)
+        INSERT INTO articles (title, slug, excerpt, content, category, image_url, tags, featured, published, updating, newsletter, code, reading_time, start_time, end_time, versions, created_by)
+        VALUES (:title, :slug, :excerpt, :content, :category, :image_url, :tags, :featured, :published, :updating, :newsletter, :code, :reading_time, :start_time, :end_time, :versions, :created_by)
     ');
     $stmt->execute([
         'title' => $title,
@@ -139,6 +143,8 @@ if ($method === 'POST') {
         'featured' => $featured,
         'published' => $published,
         'updating' => $updating,
+        'newsletter' => $newsletter,
+        'code' => $code,
         'reading_time' => $reading_time,
         'start_time' => $start_time,
         'end_time' => $end_time,
@@ -187,6 +193,8 @@ if ($method === 'PUT') {
     $featured = isset($input['featured']) ? (!empty($input['featured']) ? 1 : 0) : $article['featured'];
     $published = isset($input['published']) ? (!empty($input['published']) ? 1 : 0) : $article['published'];
     $updating = isset($input['updating']) ? (!empty($input['updating']) ? 1 : 0) : $article['updating'];
+    $newsletter = isset($input['newsletter']) ? (!empty($input['newsletter']) ? 1 : 0) : $article['newsletter'];
+    $code = array_key_exists('code', $input) ? $input['code'] : $article['code'];
     $start_time = array_key_exists('start_time', $input) ? (!empty($input['start_time']) ? $input['start_time'] : null) : $article['start_time'];
     $end_time = array_key_exists('end_time', $input) ? (!empty($input['end_time']) ? $input['end_time'] : null) : $article['end_time'];
 
@@ -208,6 +216,8 @@ if ($method === 'PUT') {
         'featured' => 'int',
         'published' => 'int',
         'updating' => 'int',
+        'newsletter' => 'int',
+        'code' => 'string',
         'start_time' => 'string',
         'end_time' => 'string'
     ];
@@ -231,6 +241,10 @@ if ($method === 'PUT') {
             $newVal = $published;
         } elseif ($field === 'updating') {
             $newVal = $updating;
+        } elseif ($field === 'newsletter') {
+            $newVal = $newsletter;
+        } elseif ($field === 'code') {
+            $newVal = $code;
         } elseif ($field === 'start_time') {
             $newVal = $start_time;
         } elseif ($field === 'end_time') {
@@ -313,7 +327,7 @@ if ($method === 'PUT') {
 
     $stmt = $db->prepare('
         UPDATE articles 
-        SET title = :title, slug = :slug, excerpt = :excerpt, content = :content, category = :category, image_url = :image_url, tags = :tags, featured = :featured, published = :published, updating = :updating, reading_time = :reading_time, start_time = :start_time, end_time = :end_time, versions = :versions
+        SET title = :title, slug = :slug, excerpt = :excerpt, content = :content, category = :category, image_url = :image_url, tags = :tags, featured = :featured, published = :published, updating = :updating, newsletter = :newsletter, code = :code, reading_time = :reading_time, start_time = :start_time, end_time = :end_time, versions = :versions
         WHERE id = :id
     ');
     $stmt->execute([
@@ -327,6 +341,8 @@ if ($method === 'PUT') {
         'featured' => $featured,
         'published' => $published,
         'updating' => $updating,
+        'newsletter' => $newsletter,
+        'code' => $code,
         'reading_time' => $reading_time,
         'start_time' => $start_time,
         'end_time' => $end_time,

@@ -101,7 +101,7 @@ function getPublishedArticles(int $limit = 100, int $offset = 0): array
 {
     $db = getDB();
     $stmt = $db->prepare(
-        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, published, updating, reading_time, views, created_at, updated_at
+        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, published, updating, newsletter, code, reading_time, views, created_at, updated_at
          FROM articles 
          WHERE published = 1 
            AND (start_time IS NULL OR start_time <= NOW()) 
@@ -123,7 +123,7 @@ function getFeaturedArticles(int $limit = 10, int $offset = 0): array
 {
     $db = getDB();
     $stmt = $db->prepare(
-        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, published, updating, reading_time, views, created_at, updated_at
+        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, published, updating, newsletter, code, reading_time, views, created_at, updated_at
          FROM articles 
          WHERE published = 1 
            AND featured = 1
@@ -257,6 +257,7 @@ function getArticleBySlug(string $slug): ?array
     $row['featured'] = (bool) $row['featured'];
     $row['published'] = (bool) $row['published'];
     $row['updating'] = (bool) ($row['updating'] ?? false);
+    $row['newsletter'] = (bool) ($row['newsletter'] ?? false);
     $row['versions'] = json_decode($row['versions'] ?? '[]', true) ?: [];
     return $row;
 }
@@ -265,7 +266,7 @@ function getArticlesByCategorySlugs(string $category, int $limit = 20): array
 {
     $db = getDB();
     $stmt = $db->prepare(
-        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, published, updating, reading_time, views, created_at, updated_at
+        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, published, updating, newsletter, code, reading_time, views, created_at, updated_at
          FROM articles 
          WHERE published = 1 
            AND (start_time IS NULL OR start_time <= NOW()) 
@@ -288,7 +289,7 @@ function getRelatedArticles(string $category, string $excludeId, int $limit = 3)
 {
     $db = getDB();
     $stmt = $db->prepare(
-        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, reading_time, views, created_at, updating
+        'SELECT id, title, slug, excerpt, category, image_url, tags, featured, newsletter, code, reading_time, views, created_at, updating
          FROM articles 
          WHERE published = 1 
            AND (start_time IS NULL OR start_time <= NOW()) 
@@ -318,7 +319,7 @@ function searchArticles(string $query, ?string $category = null): array
         $params[] = $category;
     }
     $stmt = $db->prepare(
-        "SELECT id, title, slug, excerpt, category, image_url, tags, featured, reading_time, views, created_at, updating
+        "SELECT id, title, slug, excerpt, category, image_url, tags, featured, newsletter, code, reading_time, views, created_at, updating
          FROM articles 
          WHERE published = 1 
            AND (start_time IS NULL OR start_time <= NOW()) 

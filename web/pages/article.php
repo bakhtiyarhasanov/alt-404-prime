@@ -131,7 +131,13 @@ require_once __DIR__ . '/../includes/header.php';
 
       <!-- Full Article Content -->
       <div class="prose-reading max-w-none text-neutral-800 dark:text-neutral-200 text-sm sm:text-base leading-relaxed space-y-4">
-        <?= $article['content'] ?>
+        <?php
+          $contentHtml = $article['content'];
+          if (!empty($article['code']) && strpos($contentHtml, '{{code}}') !== false) {
+              $contentHtml = str_replace('{{code}}', $article['code'], $contentHtml);
+          }
+          echo $contentHtml;
+        ?>
       </div>
 
       <!-- Tags Section -->
