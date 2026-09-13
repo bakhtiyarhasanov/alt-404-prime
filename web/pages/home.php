@@ -192,17 +192,15 @@ require_once __DIR__ . '/../includes/header.php';
             <?php endforeach; ?>
 
             <?php if ($hasSpotlightAd): ?>
-              <!-- 4th Card: Pure Clean 4:5 Advertisement Banner -->
+              <!-- 4th Card: Full-Height Advertisement Banner -->
               <aside id="spotlight-ad-banner"
-                class="group relative flex flex-col bg-white dark:bg-[#120726] rounded-lg overflow-hidden border border-neutral-200/90 dark:border-[#22153e] shadow-xs hover:shadow-md transition-all duration-200">
+                class="group relative bg-white dark:bg-[#120726] rounded-lg overflow-hidden border border-neutral-200/90 dark:border-[#22153e] shadow-xs hover:shadow-md transition-all duration-200">
                 <a href="<?= e($spotlightAd['link_url'] ?: 'https://alt404.az') ?>" target="_blank"
-                  rel="noopener noreferrer" class="flex-1 flex flex-col h-full w-full cursor-pointer relative" title="Reklam">
-                  <div class="relative w-full aspect-[4/5] overflow-hidden bg-neutral-100 dark:bg-neutral-900">
-                    <img src="<?= e($spotlightAd['image_url']) ?>" alt="Reklam"
-                      class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300 ease-out"
-                      loading="eager" />
-                    <span class="ad-label">Reklam</span>
-                  </div>
+                  rel="noopener noreferrer" class="block w-full h-full cursor-pointer relative" title="Reklam">
+                  <img src="<?= e($spotlightAd['image_url']) ?>" alt="Reklam"
+                    class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300 ease-out"
+                    loading="eager" />
+                  <span class="ad-label">Reklam</span>
                 </a>
               </aside>
             <?php endif; ?>

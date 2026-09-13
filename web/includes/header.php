@@ -54,7 +54,7 @@ $clientArticlesJson = json_encode(array_map(function($a) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tomorrow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="stylesheet" href="/assets/css/style.css?v=1.0.0">
 
   <!-- Immediate Theme Check to avoid FOUC -->
   <script>
@@ -139,22 +139,15 @@ $clientArticlesJson = json_encode(array_map(function($a) {
         id="tag-scroll-container"
         class="hidden md:flex items-center flex-1 overflow-x-hidden scroll-smooth h-9 py-1 text-xs gap-1.5 min-w-0 select-none"
       >
-        <?php if ($activeTag): ?>
-          <a
-            id="clear-tag-btn"
-            href="<?= $currentPath === '/' ? '/' : $currentPath ?>"
-            class="px-2.5 py-1 rounded bg-[#fcdb56] text-[#080117] font-bold text-xs whitespace-nowrap flex items-center gap-1.5 shadow-xs shrink-0"
-            title="Teq filtrini təmizlə"
-          >
-            <span><?= e($activeTag) ?></span>
-            <span class="text-xs">✕</span>
-          </a>
-        <?php endif; ?>
 
         <?php 
-        // Render tags duplicated for smooth loop
-        $tagsLoop = array_merge($topRankedTags, $topRankedTags, $topRankedTags);
-        foreach ($tagsLoop as $idx => $tag): 
+        // Build indexed array of [tag, count] tuples for smooth loop duplication
+        $tagEntries = [];
+        foreach ($topRankedTags as $t => $c) { $tagEntries[] = [$t, $c]; }
+        $tagsLoop = array_merge($tagEntries, $tagEntries, $tagEntries);
+        foreach ($tagsLoop as $entry): 
+          $tag = $entry[0];
+          $tagCount = $entry[1];
           $isCurrentTag = ($activeTag && mb_strtolower(str_replace('#', '', $activeTag), 'UTF-8') === mb_strtolower(str_replace('#', '', $tag), 'UTF-8'));
           $tagUrl = '/?tag=' . urlencode(str_replace('#', '', $tag));
         ?>
@@ -163,7 +156,7 @@ $clientArticlesJson = json_encode(array_map(function($a) {
             class="px-2.5 py-1 rounded text-xs tracking-tight whitespace-nowrap transition-all duration-150 shrink-0 font-medium cursor-pointer <?= $isCurrentTag ? 'bg-[#fcdb56] text-[#080117] font-bold ring-1 ring-[#fcdb56] shadow-xs' : 'text-neutral-600 hover:text-[#080117] hover:bg-[#fcdb56]/20 bg-neutral-100/70 border border-neutral-200/60 dark:text-neutral-300 dark:hover:text-[#fcdb56] dark:hover:bg-[#1a0f35] dark:bg-[#120726] dark:border-[#2a1a4a]' ?>"
           >
             <?= e($tag) ?>
-          </a>
+          </a><!-- count:<?= $tagCount ?> -->
         <?php endforeach; ?>
       </div>
 

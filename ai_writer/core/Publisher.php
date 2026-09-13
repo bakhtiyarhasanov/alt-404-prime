@@ -54,7 +54,11 @@ class Publisher {
         }
 
         $category = $item['category'] ?: 'texnologiya';
-        $imageUrl = $item['source_image_url'] ?: '';
+        $sourceImageUrl = $item['source_image_url'] ?: '';
+        $imageUrl = $sourceImageUrl;
+        if (!empty($sourceImageUrl) && str_starts_with($sourceImageUrl, 'http')) {
+            $imageUrl = $this->downloadImage($sourceImageUrl);
+        }
 
         if (empty($title)) {
             throw new Exception("Başlıq boş ola bilməz.");
@@ -226,5 +230,45 @@ class Publisher {
             mt_rand(0, 0x3fff) | 0x8000,
             mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
+    }
+
+    /**
+     * Download image from external URL to web/uploads/articles
+     */
+    private function downloadImage(string $url): string {
+        if (empty($url)) return '';
+        
+        $uploadsDir = __DIR__ . '/../../web/uploads/articles';
+        if (!is_dir($uploadsDir)) {
+            if (!mkdir($uploadsDir, 0777, true) && !is_dir($uploadsDir)) {
+                return $url; // Fallback
+            }
+        }
+        
+        $ext = pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION);
+        $ext = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $ext));
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+            $ext = 'jpg';
+        }
+        
+        $filename = md5(uniqid((string)mt_rand(), true)) . '.' . $ext;
+        $savePath = $uploadsDir . '/' . $filename;
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        $data = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($data && $code === 200) {
+            file_put_contents($savePath, $data);
+            return '/uploads/articles/' . $filename;
+        }
+        
+        return $url; // Fallback to original
     }
 }

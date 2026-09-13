@@ -1,0 +1,3 @@
+- for style and js files add version and use query params to version them for example style.css?v=1.0.0 and js.js?v=1.0.0 so we dont have cache for new versions
+- on db store only absolute path for images, so when we redeploy to another domain we dont have to update all images
+- 

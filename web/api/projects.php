@@ -34,9 +34,12 @@ if ($method === 'POST') {
         exit;
     }
 
-    // If image is empty or a YouTube URL, auto-generate from YouTube
-    if (!$image || (extractYouTubeID($image) && strpos($image, 'img.youtube.com') === false)) {
-        $image = getYouTubeThumbnail($image ?: $youtube_url);
+    // If image is empty, auto-generate from YouTube
+    if (!$image) {
+        $image = getYouTubeThumbnail($youtube_url);
+    } elseif (extractYouTubeID($image) && strpos($image, 'img.youtube.com') === false) {
+        // If image is a YouTube video URL (not a thumbnail), convert it
+        $image = getYouTubeThumbnail($image);
     }
 
     // Generate unique ID
@@ -79,9 +82,12 @@ if ($method === 'PUT') {
         exit;
     }
 
-    // If image is empty or a YouTube URL, auto-generate from YouTube
-    if (!$image || (extractYouTubeID($image) && strpos($image, 'img.youtube.com') === false)) {
-        $image = getYouTubeThumbnail($image ?: $youtube_url);
+    // If image is empty, auto-generate from YouTube
+    if (!$image) {
+        $image = getYouTubeThumbnail($youtube_url);
+    } elseif (extractYouTubeID($image) && strpos($image, 'img.youtube.com') === false) {
+        // If image is a YouTube video URL (not a thumbnail), convert it
+        $image = getYouTubeThumbnail($image);
     }
 
     $stmt = $db->prepare('

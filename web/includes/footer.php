@@ -419,7 +419,7 @@ $footerCategories = getVisibleCategories();
 </footer>
 
 <!-- Interactive Client-side Script -->
-<script src="/assets/js/main.js"></script>
+<script src="/assets/js/main.js?v=1.0.0"></script>
 </body>
 
 </html>

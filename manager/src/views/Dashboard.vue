@@ -27,7 +27,7 @@
       </div>
       <div class="list">
         <div v-for="art in pendingArticles" :key="art.id" class="list-item alert-item">
-          <img :src="art.image_url || 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg'" class="item-img" alt="">
+          <img :src="getAbsoluteUrl(art.image_url) || 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg'" class="item-img" alt="">
           <div class="item-info">
             <span class="item-title">{{ art.title }}</span>
             <span class="item-sub">Müəllif: {{ art.creator_name || 'Bilinmir' }} • {{ art.category }}</span>
@@ -50,7 +50,7 @@
         </div>
         <div class="list">
           <div v-for="art in recentArticles" :key="art.id" class="list-item">
-            <img :src="art.image_url || 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg'" class="item-img" alt="">
+            <img :src="getAbsoluteUrl(art.image_url) || 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg'" class="item-img" alt="">
             <div class="item-info">
               <span class="item-title">{{ art.title }}</span>
               <span class="item-sub">{{ art.category }} • {{ art.views }} baxış • {{ art.creator_name || 'Bilinmir' }}</span>
@@ -110,6 +110,14 @@ export default {
 
     onMounted(fetchDashboardData)
 
+    const getAbsoluteUrl = (url) => {
+      if (!url) return ''
+      if (url.startsWith('/')) {
+        return `https://alt404.com${url}`
+      }
+      return url
+    }
+
     const totalViews = computed(() => {
       return articles.value.reduce((acc, a) => acc + (a.views || 0), 0)
     })
@@ -140,7 +148,8 @@ export default {
       recentArticles: computed(() => articles.value.slice(0, 5)),
       recentContacts: computed(() => contacts.value.slice(0, 5)),
       pendingArticles: computed(() => articles.value.filter(a => !a.published)),
-      approveArticle
+      approveArticle,
+      getAbsoluteUrl
     }
   }
 }

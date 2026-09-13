@@ -122,15 +122,33 @@
 
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <label class="label">Poster Şəkli URL</label>
-              <button
-                type="button"
-                @click="fetchYtThumb"
-                style="font-size: 10px; color: var(--color-primary); background: none; border: none; cursor: pointer; font-weight: 600;"
-              >
-                YouTube-dan çək
-              </button>
+              <label class="label">Poster Şəkli</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <button
+                  type="button"
+                  @click="triggerPosterUpload"
+                  :disabled="posterUploading"
+                  style="font-size: 10px; color: #4ade80; background: none; border: none; cursor: pointer; font-weight: 600;"
+                >
+                  {{ posterUploading ? 'Yüklənir...' : '📁 Fayldan yüklə' }}
+                </button>
+                <span style="color: var(--color-border); font-size: 10px;">|</span>
+                <button
+                  type="button"
+                  @click="fetchYtThumb"
+                  style="font-size: 10px; color: var(--color-primary); background: none; border: none; cursor: pointer; font-weight: 600;"
+                >
+                  YouTube-dan çək
+                </button>
+              </div>
             </div>
+            <input
+              ref="posterFileInput"
+              type="file"
+              accept="image/*"
+              style="display: none;"
+              @change="handlePosterUpload"
+            />
             <input
               v-model="form.image"
               type="text"
@@ -183,7 +201,7 @@
 
 <script>
 import { ref, reactive, onMounted, watch } from 'vue'
-import client from '../api/client'
+import client, { SITE_URL } from '../api/client'
 
 export default {
   name: 'ProjectsView',
@@ -192,6 +210,8 @@ export default {
     const isEdit = ref(false)
     const saving = ref(false)
     const editingId = ref(null)
+    const posterUploading = ref(false)
+    const posterFileInput = ref(null)
 
     const form = reactive({
       title: '',
@@ -250,7 +270,7 @@ export default {
       return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
     }
 
-    // Resolves an image URL or youtube link to a reliable, clean poster image URL
+    // Resolves an image URL or youtube link to a reliable, clean poster image URL for preview
     const getPosterUrl = (itemOrUrl, fallbackYtUrl = '') => {
       if (!itemOrUrl && !fallbackYtUrl) return ''
       const img = (typeof itemOrUrl === 'object' ? itemOrUrl?.image : itemOrUrl) || ''
@@ -258,6 +278,10 @@ export default {
 
       // If img is already an actual image URL (and NOT a youtube video watch/shorts link)
       if (img && !img.includes('youtube.com/watch') && !img.includes('youtube.com/shorts') && !img.includes('youtu.be/')) {
+        // Absolute path like /uploads/... → prepend site domain for preview
+        if (img.startsWith('/')) {
+          return SITE_URL + img
+        }
         return img
       }
 
@@ -312,6 +336,41 @@ export default {
       }
     }
 
+    const triggerPosterUpload = () => {
+      if (posterFileInput.value) {
+        posterFileInput.value.click()
+      }
+    }
+
+    const handlePosterUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      posterUploading.value = true
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('title', 'Project Poster')
+        formData.append('alt_text', form.title || 'Project Poster')
+
+        const { data } = await client.post('/media', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+
+        if (data.success && data.url) {
+          // Store absolute path (no domain) so it works across domains
+          form.image = data.url
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Poster yükləmə zamanı xəta baş verdi')
+      } finally {
+        posterUploading.value = false
+        // Reset file input so same file can be re-selected
+        if (posterFileInput.value) posterFileInput.value.value = ''
+      }
+    }
+
     const fetchProjects = async () => {
       try {
         const { data } = await client.get('/projects?all=1')
@@ -331,8 +390,8 @@ export default {
       form.category = proj.category || 'EKSPERİMENT'
       form.duration = proj.duration || '15:00'
       form.youtube_url = proj.youtube_url || ''
-      // Crucial: ensure form.image displays the actual poster image URL, NOT a youtube video link
-      form.image = getPosterUrl(proj)
+      // Store raw DB value (absolute path); getPosterUrl is only for preview display
+      form.image = proj.image || ''
       form.description = proj.description || ''
       form.sort_order = proj.sort_order || 0
       form.enabled = typeof proj.enabled !== 'undefined' ? Boolean(proj.enabled) : true
@@ -355,8 +414,9 @@ export default {
     const save = async () => {
       saving.value = true
       try {
+        // If no custom image set, fall back to YouTube thumbnail
         if (!form.image || form.image.includes('youtube.com/watch') || form.image.includes('youtube.com/shorts') || form.image.includes('youtu.be/')) {
-          form.image = getPosterUrl(form.image, form.youtube_url)
+          form.image = getYoutubeThumb(form.youtube_url)
         }
         if (isEdit.value) {
           await client.put(`/projects/${editingId.value}`, form)
@@ -388,11 +448,15 @@ export default {
       isEdit,
       saving,
       form,
+      posterUploading,
+      posterFileInput,
       getYoutubeThumb,
       getPosterUrl,
       fetchYtThumb,
       onYoutubeChange,
       isShortsUrl,
+      triggerPosterUpload,
+      handlePosterUpload,
       edit,
       resetForm,
       save,

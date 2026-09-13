@@ -24,7 +24,7 @@
         <tbody>
           <tr v-for="art in paginatedArticles" :key="art.id">
             <td>
-              <img :src="art.image_url || 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg'" class="table-img" alt="">
+              <img :src="getAbsoluteUrl(art.image_url) || 'https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg'" class="table-img" alt="">
             </td>
             <td>
               <div class="title-cell">
@@ -113,6 +113,14 @@ export default {
       currentPage.value = 1
     })
 
+    const getAbsoluteUrl = (url) => {
+      if (!url) return ''
+      if (url.startsWith('/')) {
+        return `https://alt404.com${url}`
+      }
+      return url
+    }
+
     const getCategoryName = (slug) => {
       const cat = categories.value.find(c => c.slug === slug)
       return cat ? cat.label : slug
@@ -186,7 +194,8 @@ export default {
       getCategoryName,
       formatDate,
       getArticleStatus,
-      confirmDelete
+      confirmDelete,
+      getAbsoluteUrl
     }
   }
 }

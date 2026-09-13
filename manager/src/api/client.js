@@ -34,5 +34,8 @@ client.interceptors.response.use((response) => {
   return Promise.reject(error)
 })
 
+// Website base URL for previewing absolute-path images (e.g. /uploads/...)
+const SITE_URL = API_BASE_URL.replace(/\/api$/, '')
+
 export default client
-export { API_BASE_URL }
+export { API_BASE_URL, SITE_URL }

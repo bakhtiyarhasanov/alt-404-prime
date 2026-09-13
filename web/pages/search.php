@@ -110,7 +110,7 @@ require_once __DIR__ . '/../includes/header.php';
               Populyar teqlər:
             </span>
             <div class="flex items-center flex-wrap gap-1.5">
-              <?php foreach ($popularTags as $pTag): ?>
+              <?php foreach ($popularTags as $pTag => $pCount): ?>
                 <?php 
                   $cleanTag = str_replace('#', '', $pTag);
                   $isThisTag = (mb_strtolower($query, 'UTF-8') === mb_strtolower($cleanTag, 'UTF-8'));

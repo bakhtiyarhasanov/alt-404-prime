@@ -94,9 +94,12 @@
               <button type="button" @click="$refs.fileInput.click()" class="btn-secondary" :disabled="uploadingImage || isEditingDisabled">
                 {{ uploadingImage ? 'Yüklənir...' : 'Şəkil Yüklə' }}
               </button>
+              <button v-if="isExternalImage" type="button" @click="downloadExternalImage" class="btn-secondary" :disabled="downloadingImage || isEditingDisabled">
+                {{ downloadingImage ? 'Endirilir...' : 'Endir (Local)' }}
+              </button>
             </div>
             <div v-if="form.image_url" class="image-preview-container">
-              <img v-show="!imageError" :src="form.image_url" alt="Şəkil önbaxışı" class="image-preview" @error="handleImageError">
+              <img v-show="!imageError" :src="previewImageUrl" alt="Şəkil önbaxışı" class="image-preview" @error="handleImageError">
               <span v-if="imageError" class="preview-error">Şəkil yüklənə bilmədi (URL-i yoxlayın)</span>
             </div>
           </div>
@@ -166,7 +169,7 @@
 <script>
 import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import client from '../api/client'
+import client, { SITE_URL } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
@@ -220,6 +223,21 @@ export default {
     const handleImageError = () => {
       imageError.value = true
     }
+
+    const isExternalImage = computed(() => {
+      const url = form.image_url
+      if (!url) return false
+      // Local uploads are stored as absolute paths (/uploads/...), so any http URL is external
+      return url.startsWith('http')
+    })
+
+    const previewImageUrl = computed(() => {
+      if (!form.image_url) return ''
+      if (form.image_url.startsWith('/')) {
+        return SITE_URL + form.image_url
+      }
+      return form.image_url
+    })
 
     const loadArticle = async (id) => {
       try {
@@ -363,7 +381,22 @@ export default {
     }
 
     const uploadingImage = ref(false)
+    const downloadingImage = ref(false)
     const fileInput = ref(null)
+
+    const downloadExternalImage = async () => {
+      if (!form.image_url) return
+      downloadingImage.value = true
+      try {
+        const { data } = await client.post('/media/download-external', { url: form.image_url })
+        // Store absolute path only (no domain) so it works across deployments
+        form.image_url = data.url
+      } catch (err) {
+        alert('Şəkil endirilərkən xəta baş verdi')
+      } finally {
+        downloadingImage.value = false
+      }
+    }
 
     const uploadImage = async (e) => {
       const file = e.target.files[0]
@@ -380,19 +413,8 @@ export default {
             'Content-Type': 'multipart/form-data'
           }
         })
-        
-        // Ensure local uploads reference the backend host (e.g. http://localhost:8000/uploads/...)
-        // client.defaults.baseURL is usually 'http://localhost:8000/api' or '/api'
-        let baseUrl = client.defaults.baseURL || ''
-        if (baseUrl.endsWith('/api')) {
-          baseUrl = baseUrl.slice(0, -4)
-        }
-        
-        if (data.url && data.url.startsWith('/')) {
-          form.image_url = baseUrl + data.url
-        } else {
-          form.image_url = data.url
-        }
+        // Store absolute path only (no domain) so it works across deployments
+        form.image_url = data.url
       } catch (err) {
         alert('Şəkil yüklənərkən xəta baş verdi')
       } finally {
@@ -446,8 +468,12 @@ export default {
       formatDateTime,
       restoreVersion,
       uploadingImage,
+      downloadingImage,
       fileInput,
       uploadImage,
+      downloadExternalImage,
+      isExternalImage,
+      previewImageUrl,
       user,
       isEditingDisabled,
       translateField,

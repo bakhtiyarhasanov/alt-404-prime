@@ -13,11 +13,11 @@
       <div class="media-grid">
         <div v-for="item in media" :key="item.id" class="media-card">
           <div class="card-preview">
-            <img :src="item.url" class="media-img" alt="">
+            <img :src="getAbsoluteUrl(item.url)" class="media-img" alt="">
           </div>
           <div class="card-info">
             <span class="file-name">{{ item.file_name }}</span>
-            <input type="text" readonly :value="item.url" @click="copyUrl" class="url-input">
+            <input type="text" readonly :value="getAbsoluteUrl(item.url)" @click="copyUrl" class="url-input">
           </div>
           <div class="card-actions">
             <button @click="confirmDelete(item)" class="action-btn delete">Sil</button>
@@ -31,13 +31,21 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import client from '../api/client'
+import client, { SITE_URL } from '../api/client'
 
 export default {
   name: 'MediaView',
   setup() {
     const media = ref([])
     const uploading = ref(false)
+
+    const getAbsoluteUrl = (url) => {
+      if (!url) return ''
+      if (url.startsWith('/')) {
+        return SITE_URL + url
+      }
+      return url
+    }
 
     const fetchMedia = async () => {
       try {
@@ -95,7 +103,8 @@ export default {
       uploading,
       uploadFile,
       copyUrl,
-      confirmDelete
+      confirmDelete,
+      getAbsoluteUrl
     }
   }
 }

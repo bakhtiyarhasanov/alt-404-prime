@@ -62,7 +62,7 @@
           <!-- Preview image box -->
           <div class="ad-preview-box" :style="{ aspectRatio: getPlacement(ad.id).aspectCss }">
             <template v-if="ad.image_url">
-              <img :src="ad.image_url" class="preview-img" alt="Reklam Banneri" loading="lazy">
+              <img :src="getPreviewUrl(ad.image_url)" class="preview-img" alt="Reklam Banneri" loading="lazy">
               <a 
                 v-if="ad.link_url && ad.link_url !== '#'" 
                 :href="ad.link_url" 
@@ -143,7 +143,7 @@
           <div class="form-group">
             <label class="label">Banner Şəkli</label>
             <div class="modal-preview-card" v-if="form.image_url">
-              <img :src="form.image_url" alt="Önizləmə" class="modal-preview-img">
+              <img :src="getPreviewUrl(form.image_url)" alt="Önizləmə" class="modal-preview-img">
             </div>
             <div class="upload-wrapper">
               <input v-model="form.image_url" type="text" class="input" placeholder="https://..." required>
@@ -181,7 +181,7 @@
 
 <script>
 import { ref, reactive, onMounted } from 'vue'
-import client from '../api/client'
+import client, { SITE_URL } from '../api/client'
 
 export default {
   name: 'AdsView',
@@ -343,6 +343,13 @@ export default {
       }
     }
 
+    // Resolve absolute path to full preview URL for display
+    const getPreviewUrl = (url) => {
+      if (!url) return ''
+      if (url.startsWith('/')) return SITE_URL + url
+      return url
+    }
+
     const uploadImage = async (e) => {
       const file = e.target.files[0]
       if (!file) return
@@ -358,17 +365,8 @@ export default {
             'Content-Type': 'multipart/form-data'
           }
         })
-        
-        let baseUrl = client.defaults.baseURL || ''
-        if (baseUrl.endsWith('/api')) {
-          baseUrl = baseUrl.slice(0, -4)
-        }
-        
-        if (data.url && data.url.startsWith('/')) {
-          form.image_url = baseUrl + data.url
-        } else {
-          form.image_url = data.url
-        }
+        // Store absolute path only (no domain) so it works across deployments
+        form.image_url = data.url
         showToast('Şəkil uğurla yükləndi')
       } catch (err) {
         showToast('Şəkil yüklənərkən xəta baş verdi', 'error')
@@ -390,6 +388,7 @@ export default {
       form,
       toast,
       getPlacement,
+      getPreviewUrl,
       toggleStatus,
       select,
       closeModal,

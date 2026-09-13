@@ -15,6 +15,55 @@ if ($method === 'GET') {
 verifyAuth();
 
 if ($method === 'POST') {
+    if ($resourceId === 'download-external') {
+        $json = json_decode(file_get_contents('php://input'), true);
+        $urlToDownload = $json['url'] ?? '';
+        if (!$urlToDownload || !filter_var($urlToDownload, FILTER_VALIDATE_URL)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Valid URL is required']);
+            exit;
+        }
+
+        $uploadDir = __DIR__ . '/../uploads/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $pathInfo = pathinfo(parse_url($urlToDownload, PHP_URL_PATH) ?? '');
+        $ext = $pathInfo['extension'] ?? 'jpg';
+        $fileName = uniqid('media_', true) . '.' . $ext;
+        $targetPath = $uploadDir . $fileName;
+
+        $content = @file_get_contents($urlToDownload);
+        if ($content === false) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to download image']);
+            exit;
+        }
+
+        if (file_put_contents($targetPath, $content)) {
+            $url = '/uploads/' . $fileName;
+            $db = getDB();
+            $stmt = $db->prepare('
+                INSERT INTO media_library (url, alt_text, title, file_name)
+                VALUES (?, ?, ?, ?)
+            ');
+            $stmt->execute([$url, 'Downloaded Image', 'Downloaded Image', $fileName]);
+            
+            echo json_encode([
+                'success' => true,
+                'url' => $url,
+                'title' => 'Downloaded Image',
+                'alt_text' => 'Downloaded Image',
+                'file_name' => $fileName
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to save downloaded image']);
+        }
+        exit;
+    }
+
     if (!isset($_FILES['file'])) {
         http_response_code(400);
         echo json_encode(['error' => 'No file uploaded']);

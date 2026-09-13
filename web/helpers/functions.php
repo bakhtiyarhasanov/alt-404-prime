@@ -231,8 +231,9 @@ function getTopTags(int $days = 3, int $limit = 10, bool $fallback = true): arra
 
     arsort($tagCounts);
     $topRankedTags = [];
-    foreach (array_slice(array_keys($tagCounts), 0, $limit) as $lowerKey) {
-        $topRankedTags[] = $tagDisplay[$lowerKey] ?? $lowerKey;
+    foreach (array_slice($tagCounts, 0, $limit, true) as $lowerKey => $count) {
+        $display = $tagDisplay[$lowerKey] ?? $lowerKey;
+        $topRankedTags[$display] = $count;
     }
 
     return $topRankedTags;

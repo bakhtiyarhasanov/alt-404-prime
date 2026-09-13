@@ -43,6 +43,17 @@ class GrabberManager {
             Grabbers\AynaGrabber::class,
             Grabbers\MincomGrabber::class,
             Grabbers\CertGrabber::class,
+            Grabbers\PcmagGrabber::class,
+            Grabbers\MashableGrabber::class,
+            Grabbers\BgrNewsGrabber::class,
+            Grabbers\BgrTechGrabber::class,
+            Grabbers\BgrScienceGrabber::class,
+            Grabbers\WiredScienceGrabber::class,
+            Grabbers\EurogamerGrabber::class,
+            Grabbers\HackerNewsGrabber::class,
+            Grabbers\MotortrendGrabber::class,
+            Grabbers\TechcrunchStartupsGrabber::class,
+            Grabbers\Defence24Grabber::class,
         ];
 
         foreach ($grabberClasses as $class) {
