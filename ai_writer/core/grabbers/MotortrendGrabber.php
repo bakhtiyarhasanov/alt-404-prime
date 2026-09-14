@@ -19,8 +19,8 @@ class MotortrendGrabber extends BaseGrabber {
         if (!$xpath) return [];
 
         $items = [];
-        // Generic link targeting
-        $links = $xpath->query("//h2/a | //h3/a | //article//h2/a | //article//h3/a | //div[contains(@class, 'post-title')]/a");
+        // Target all links that start with /news/
+        $links = $xpath->query("//a[starts-with(@href, '/news/') or contains(@href, 'motortrend.com/news/')]");
 
         $seen = [];
         foreach ($links as $node) {

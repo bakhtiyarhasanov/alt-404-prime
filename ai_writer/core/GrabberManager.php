@@ -54,6 +54,12 @@ class GrabberManager {
             Grabbers\MotortrendGrabber::class,
             Grabbers\TechcrunchStartupsGrabber::class,
             Grabbers\Defence24Grabber::class,
+            Grabbers\StartupDailyGrabber::class,
+            Grabbers\E27Grabber::class,
+            Grabbers\EuStartupsGrabber::class,
+            Grabbers\StartupsMagazineGrabber::class,
+            Grabbers\BreakingDefenseGrabber::class,
+            Grabbers\DefenceIndustryEuGrabber::class,
         ];
 
         foreach ($grabberClasses as $class) {

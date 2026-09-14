@@ -8,7 +8,8 @@ namespace AiWriter\Core;
 use DOMDocument;
 use DOMXPath;
 
-abstract class BaseGrabber implements GrabberInterface {
+abstract class BaseGrabber implements GrabberInterface
+{
     protected int $timeout = 15;
     protected string $userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
@@ -23,7 +24,8 @@ abstract class BaseGrabber implements GrabberInterface {
     /**
      * Reset grab state before running
      */
-    public function resetGrabState(): void {
+    public function resetGrabState(): void
+    {
         $this->lastHttpCode = 0;
         $this->lastError = null;
         $this->lastIsCloudflare = false;
@@ -32,30 +34,36 @@ abstract class BaseGrabber implements GrabberInterface {
         $this->mainIsCloudflare = false;
     }
 
-    public function getLastHttpCode(): int {
+    public function getLastHttpCode(): int
+    {
         return $this->lastHttpCode;
     }
 
-    public function getLastError(): ?string {
+    public function getLastError(): ?string
+    {
         return $this->lastError;
     }
 
-    public function getMainHttpCode(): int {
+    public function getMainHttpCode(): int
+    {
         return $this->mainHttpCode;
     }
 
-    public function getMainError(): ?string {
+    public function getMainError(): ?string
+    {
         return $this->mainError;
     }
 
-    public function isCloudflareBlocked(): bool {
+    public function isCloudflareBlocked(): bool
+    {
         return $this->mainIsCloudflare || $this->lastIsCloudflare;
     }
 
     /**
      * Get configured source URL from database or default URL
      */
-    protected function getSourceUrl(): string {
+    protected function getSourceUrl(): string
+    {
         try {
             $db = Database::getAiDB();
             $stmt = $db->prepare("SELECT url FROM sources WHERE id = :id");
@@ -73,7 +81,8 @@ abstract class BaseGrabber implements GrabberInterface {
     /**
      * Perform HTTP GET request with realistic headers, cookies and Cloudflare handling
      */
-    protected function fetchUrl(string $url, array $customHeaders = []): ?string {
+    protected function fetchUrl(string $url, array $customHeaders = []): ?string
+    {
         $ch = curl_init();
         $cookieFile = sys_get_temp_dir() . '/aiwriter_cookies_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $this->getId()) . '.txt';
 
@@ -115,13 +124,14 @@ abstract class BaseGrabber implements GrabberInterface {
             if (!empty($proxy)) {
                 $curlOptions[CURLOPT_PROXY] = $proxy;
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         curl_setopt_array($ch, $curlOptions);
 
         $rawResponse = curl_exec($ch);
         $curlErr = curl_error($ch);
-        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         @curl_close($ch);
 
@@ -153,9 +163,9 @@ abstract class BaseGrabber implements GrabberInterface {
         );
 
         $isCfChallenge = $isCloudflare && (
-            $httpCode === 403 || 
-            $httpCode === 503 || 
-            stripos($body, 'Just a moment...') !== false || 
+            $httpCode === 403 ||
+            $httpCode === 503 ||
+            stripos($body, 'Just a moment...') !== false ||
             stripos($headerText, 'cf-mitigated: challenge') !== false ||
             stripos($body, 'challenges.cloudflare.com') !== false
         );
@@ -183,7 +193,8 @@ abstract class BaseGrabber implements GrabberInterface {
                         return $solvedBody;
                     }
                 }
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+            }
 
             $this->lastError = "Cloudflare mühafizəsi aktivdir (HTTP {$httpCode} / Bot Challenge)";
             if ($this->mainError === null) {
@@ -201,13 +212,15 @@ abstract class BaseGrabber implements GrabberInterface {
         }
 
         $this->lastError = null;
+        $this->saveHtmlHistory($url, $body);
         return $body;
     }
 
     /**
      * Optional FlareSolverr request to solve Cloudflare challenge
      */
-    protected function fetchWithFlareSolverr(string $flareUrl, string $targetUrl): ?string {
+    protected function fetchWithFlareSolverr(string $flareUrl, string $targetUrl): ?string
+    {
         $ch = curl_init(rtrim($flareUrl, '/') . '/v1');
         $payload = json_encode([
             'cmd' => 'request.get',
@@ -228,19 +241,54 @@ abstract class BaseGrabber implements GrabberInterface {
         $res = curl_exec($ch);
         @curl_close($ch);
 
-        if (!$res) return null;
+        if (!$res)
+            return null;
         $data = json_decode($res, true);
         if (($data['status'] ?? '') === 'ok' && !empty($data['solution']['response'])) {
+            $this->saveHtmlHistory($targetUrl, $data['solution']['response']);
             return $data['solution']['response'];
         }
         return null;
     }
 
     /**
+     * Save fetched HTML content to history table
+     */
+    protected function saveHtmlHistory(string $url, string $html): void
+    {
+        try {
+            // Ensure valid UTF-8 and remove null bytes
+            $cleanHtml = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+            $cleanHtml = str_replace("\0", "", $cleanHtml);
+
+            $db = Database::getAiDB();
+            $stmt = $db->prepare("
+                INSERT INTO grab_history_html (source_id, url, html_content)
+                VALUES (:source_id, :url, :html_content)
+            ");
+            $stmt->execute([
+                'source_id' => $this->getId(),
+                'url' => mb_substr($url, 0, 2000),
+                'html_content' => $cleanHtml
+            ]);
+
+            $isserted = $stmt->rowCount();
+
+            error_log("insert count: " . $isserted);
+
+        } catch (\Throwable $e) {
+            // Ignore insert errors to not break grabber workflow
+            error_log($e->getMessage());
+        }
+    }
+
+    /**
      * Load HTML into DOMDocument and DOMXPath
      */
-    protected function parseHtml(string $html): ?DOMXPath {
-        if (empty($html)) return null;
+    protected function parseHtml(string $html): ?DOMXPath
+    {
+        if (empty($html))
+            return null;
 
         $doc = new DOMDocument();
         libxml_use_internal_errors(true);
@@ -254,7 +302,8 @@ abstract class BaseGrabber implements GrabberInterface {
     /**
      * Helper to query single XPath text value
      */
-    protected function xpathText(DOMXPath $xpath, string $query, ?\DOMNode $context = null): string {
+    protected function xpathText(DOMXPath $xpath, string $query, ?\DOMNode $context = null): string
+    {
         $nodes = $context ? $xpath->query($query, $context) : $xpath->query($query);
         if ($nodes && $nodes->length > 0) {
             return trim(preg_replace('/\s+/', ' ', $nodes->item(0)->textContent));
@@ -265,7 +314,8 @@ abstract class BaseGrabber implements GrabberInterface {
     /**
      * Helper to query single XPath attribute value
      */
-    protected function xpathAttr(DOMXPath $xpath, string $query, string $attr, ?\DOMNode $context = null): string {
+    protected function xpathAttr(DOMXPath $xpath, string $query, string $attr, ?\DOMNode $context = null): string
+    {
         $nodes = $context ? $xpath->query($query, $context) : $xpath->query($query);
         if ($nodes && $nodes->length > 0) {
             $node = $nodes->item(0);
@@ -279,7 +329,8 @@ abstract class BaseGrabber implements GrabberInterface {
     /**
      * Safely get attribute from any DOMNode if it is a DOMElement
      */
-    protected function nodeAttr(\DOMNode $node, string $attr): string {
+    protected function nodeAttr(\DOMNode $node, string $attr): string
+    {
         if ($node instanceof \DOMElement && $node->hasAttribute($attr)) {
             return trim($node->getAttribute($attr));
         }
@@ -289,7 +340,8 @@ abstract class BaseGrabber implements GrabberInterface {
     /**
      * Extract OpenGraph meta property
      */
-    protected function extractMeta(DOMXPath $xpath, string $property): string {
+    protected function extractMeta(DOMXPath $xpath, string $property): string
+    {
         $val = $this->xpathAttr($xpath, "//meta[@property='{$property}']", 'content');
         if (!$val) {
             $val = $this->xpathAttr($xpath, "//meta[@name='{$property}']", 'content');
@@ -300,10 +352,14 @@ abstract class BaseGrabber implements GrabberInterface {
     /**
      * Resolve relative URL into absolute URL
      */
-    protected function makeAbsoluteUrl(string $rel, string $base): string {
-        if (empty($rel)) return '';
-        if (parse_url($rel, PHP_URL_SCHEME) != '') return $rel;
-        if (str_starts_with($rel, '//')) return 'https:' . $rel;
+    protected function makeAbsoluteUrl(string $rel, string $base): string
+    {
+        if (empty($rel))
+            return '';
+        if (parse_url($rel, PHP_URL_SCHEME) != '')
+            return $rel;
+        if (str_starts_with($rel, '//'))
+            return 'https:' . $rel;
 
         $parts = parse_url($base);
         $scheme = $parts['scheme'] ?? 'https';
@@ -316,14 +372,16 @@ abstract class BaseGrabber implements GrabberInterface {
 
         $path = $parts['path'] ?? '/';
         $dir = dirname($path);
-        if ($dir === '\\' || $dir === '.') $dir = '';
+        if ($dir === '\\' || $dir === '.')
+            $dir = '';
         return "{$scheme}://{$host}{$port}{$dir}/{$rel}";
     }
 
     /**
      * Clean article HTML by stripping scripts, styles, trackers, keeping p, h2, h3, ul, ol, li, img
      */
-    protected function cleanArticleHtml(string $html): string {
+    protected function cleanArticleHtml(string $html): string
+    {
         // Strip scripts, styles, iframes, and ads
         $html = preg_replace('/<(script|style|iframe|noscript|svg)[^>]*>.*?<\/\1>/si', '', $html);
         $html = strip_tags($html, '<p><br><h2><h3><h4><ul><ol><li><strong><b><em><i><blockquote><img><a>');

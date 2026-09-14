@@ -3,34 +3,60 @@ namespace AiWriter\Core\Grabbers;
 
 use AiWriter\Core\BaseGrabber;
 
-class Defence24Grabber extends BaseGrabber {
-    public function getId(): string { return 'defence24'; }
-    public function getName(): string { return 'Defence24'; }
-    public function getUrl(): string { return 'https://defence24.com/industry'; }
-    public function getDefaultCategory(): string { return 'texnologiya'; }
-    public function isRewriteEnabledByDefault(): bool { return true; }
-    public function getDefaultRetryMinutes(): int { return 45; }
+class Defence24Grabber extends BaseGrabber
+{
+    public function getId(): string
+    {
+        return 'defence24';
+    }
+    public function getName(): string
+    {
+        return 'Defence24';
+    }
+    public function getUrl(): string
+    {
+        return 'https://defence24.com/industry';
+    }
+    public function getDefaultCategory(): string
+    {
+        return 'texnologiya';
+    }
+    public function isRewriteEnabledByDefault(): bool
+    {
+        return true;
+    }
+    public function getDefaultRetryMinutes(): int
+    {
+        return 45;
+    }
 
-    public function grab(): array {
+    public function grab(): array
+    {
         $html = $this->fetchUrl($this->getSourceUrl());
-        if (!$html) return [];
+        if (!$html)
+            return [];
+
 
         $xpath = $this->parseHtml($html);
-        if (!$xpath) return [];
+        if (!$xpath)
+            return [];
 
         $items = [];
         // Generic link targeting
-        $links = $xpath->query("//h2/a | //h3/a | //article//h2/a | //article//h3/a | //div[contains(@class, 'post-title')]/a");
+        $links = $xpath->query("//div[contains(@class, 'tile')]//a[contains(@class, 'tile__title')] | //h2/a | //h3/a | //article//h2/a | //article//h3/a | //div[contains(@class, 'post-title')]/a");
 
         $seen = [];
         foreach ($links as $node) {
             $href = $this->nodeAttr($node, 'href');
-            if (empty($href)) continue;
+            if (empty($href))
+                continue;
 
             $title = trim($node->textContent);
-            if (strlen($title) < 15) continue;
+            if (strlen($title) < 15)
+                continue;
 
-            if (isset($seen[$href])) continue;
+            if (isset($seen[$href]))
+                continue;
             $seen[$href] = true;
 
             $absUrl = $this->makeAbsoluteUrl($href, $this->getSourceUrl());
@@ -39,18 +65,22 @@ class Defence24Grabber extends BaseGrabber {
                 $items[] = $item;
             }
 
-            if (count($items) >= 8) break;
+            if (count($items) >= 8)
+                break;
         }
 
         return $items;
     }
 
-    public function grabArticle(string $url, string $fallbackTitle = ''): ?array {
+    public function grabArticle(string $url, string $fallbackTitle = ''): ?array
+    {
         $html = $this->fetchUrl($url);
-        if (!$html) return null;
+        if (!$html)
+            return null;
 
         $xpath = $this->parseHtml($html);
-        if (!$xpath) return null;
+        if (!$xpath)
+            return null;
 
         $title = $this->xpathText($xpath, "//h1") ?: $this->extractMeta($xpath, 'og:title') ?: $fallbackTitle;
         $excerpt = $this->extractMeta($xpath, 'og:description') ?: $this->xpathText($xpath, "//meta[@name='description']/@content");
@@ -66,8 +96,9 @@ class Defence24Grabber extends BaseGrabber {
         if ($bodyNodes) {
             foreach ($bodyNodes as $node) {
                 $text = trim($node->textContent);
-                if (strlen($text) < 15) continue;
-                
+                if (strlen($text) < 15)
+                    continue;
+
                 $tag = $node->nodeName;
                 if ($tag === 'h2' || $tag === 'h3') {
                     $paragraphs[] = "<$tag>" . htmlspecialchars($text) . "</$tag>";

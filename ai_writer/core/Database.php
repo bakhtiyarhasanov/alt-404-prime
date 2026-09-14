@@ -174,6 +174,27 @@ class Database {
             // Ignore if already created or schema error
         }
 
+        // Ensure grab_history_html table exists
+        try {
+            $checkHtmlHistory = self::$aiPdo->query("SHOW TABLES LIKE 'grab_history_html'")->fetch();
+            if (!$checkHtmlHistory) {
+                self::$aiPdo->exec("
+                    CREATE TABLE IF NOT EXISTS `grab_history_html` (
+                      `id` INT AUTO_INCREMENT NOT NULL,
+                      `source_id` VARCHAR(50) NOT NULL,
+                      `url` TEXT NOT NULL,
+                      `html_content` LONGTEXT DEFAULT NULL,
+                      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                      PRIMARY KEY (`id`),
+                      KEY `idx_source` (`source_id`),
+                      KEY `idx_created` (`created_at` DESC)
+                    ) ENGINE=InnoDB;
+                ");
+            }
+        } catch (\Throwable $e) {
+            // Ignore if already created or schema error
+        }
+
         // Ensure sources table has last_news_grabbed_at column
         try {
             $colCheck = self::$aiPdo->query("SHOW COLUMNS FROM `sources` LIKE 'last_news_grabbed_at'")->fetch();

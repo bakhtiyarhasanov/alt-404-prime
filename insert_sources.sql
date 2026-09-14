@@ -9,4 +9,10 @@ INSERT IGNORE INTO `sources` (`id`, `name`, `url`, `category`, `is_enabled`, `re
 ('hackernews', 'The Hacker News', 'https://thehackernews.com/', 'texnologiya', 1, 1),
 ('motortrend', 'MotorTrend', 'https://www.motortrend.com/news', 'avto', 1, 1),
 ('techcrunch_startups', 'TechCrunch Startups', 'https://techcrunch.com/category/startups/', 'texnologiya', 1, 1),
-('defence24', 'Defence24', 'https://defence24.com/industry', 'texnologiya', 1, 1);
+('defence24', 'Defence24', 'https://defence24.com/industry', 'texnologiya', 1, 1),
+('startup_daily', 'Startup Daily', 'https://www.startupdaily.net/tag/news/', 'biznes', 1, 1),
+('e27', 'e27', 'https://e27.co/news/', 'biznes', 1, 1),
+('eu_startups', 'EU-Startups', 'https://www.eu-startups.com/', 'biznes', 1, 1),
+('startups_magazine', 'Startups Magazine', 'https://startupsmagazine.co.uk/articles/news', 'biznes', 1, 1),
+('breaking_defense', 'Breaking Defense Networks', 'https://breakingdefense.com/category/networks-and-digital-warfare/', 'texnologiya', 1, 1),
+('defence_industry_eu', 'Defence Industry EU', 'https://defence-industry.eu/', 'texnologiya', 1, 1);

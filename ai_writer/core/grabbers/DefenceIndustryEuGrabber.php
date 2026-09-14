@@ -3,11 +3,11 @@ namespace AiWriter\Core\Grabbers;
 
 use AiWriter\Core\BaseGrabber;
 
-class EurogamerGrabber extends BaseGrabber {
-    public function getId(): string { return 'eurogamer'; }
-    public function getName(): string { return 'Eurogamer'; }
-    public function getUrl(): string { return 'https://www.eurogamer.net/latest'; }
-    public function getDefaultCategory(): string { return 'oyun'; }
+class DefenceIndustryEuGrabber extends BaseGrabber {
+    public function getId(): string { return 'defence_industry_eu'; }
+    public function getName(): string { return 'Defence Industry EU'; }
+    public function getUrl(): string { return 'https://defence-industry.eu/'; }
+    public function getDefaultCategory(): string { return 'texnologiya'; }
     public function isRewriteEnabledByDefault(): bool { return true; }
     public function getDefaultRetryMinutes(): int { return 45; }
 
@@ -19,8 +19,7 @@ class EurogamerGrabber extends BaseGrabber {
         if (!$xpath) return [];
 
         $items = [];
-        // Specific link targeting for Eurogamer
-        $links = $xpath->query("//p[contains(@class, 'title')]/a | //h2/a | //h3/a | //article//h2/a | //article//h3/a | //div[contains(@class, 'post-title')]/a");
+        $links = $xpath->query("//h2/a | //h3/a | //article//h2/a | //article//h3/a | //div[contains(@class, 'post-title')]/a | //h1/a | //a[contains(@class, 'title')]");
 
         $seen = [];
         foreach ($links as $node) {
@@ -56,10 +55,10 @@ class EurogamerGrabber extends BaseGrabber {
         $excerpt = $this->extractMeta($xpath, 'og:description') ?: $this->xpathText($xpath, "//meta[@name='description']/@content");
         $img = $this->extractMeta($xpath, 'og:image');
 
-        // Generic article body targeting
         $bodyNodes = $xpath->query(
             "//article//p | //article//h2 | //article//h3 | " .
-            "//div[contains(@class, 'article-content') or contains(@class, 'entry-content') or contains(@class, 'post-content')]//p"
+            "//div[contains(@class, 'article-content') or contains(@class, 'entry-content') or contains(@class, 'post-content')]//p | " .
+            "//div[contains(@class, 'td-post-content')]//p"
         );
 
         $paragraphs = [];
@@ -89,7 +88,7 @@ class EurogamerGrabber extends BaseGrabber {
             'excerpt' => $excerpt ?: mb_substr(strip_tags($content), 0, 200),
             'content' => $content,
             'image_url' => $img ? $this->makeAbsoluteUrl($img, $url) : '',
-            'tags' => ['Eurogamer'],
+            'tags' => ['Defence Industry', 'EU', 'Tech'],
             'category' => $this->getDefaultCategory()
         ];
     }

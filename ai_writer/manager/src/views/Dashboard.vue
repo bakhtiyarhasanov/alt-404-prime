@@ -4,7 +4,7 @@
     <div class="welcome-banner">
       <div class="banner-content">
         <h1>Süni İntellekt Jurnalisti və Xəbər İdarəetməsi</h1>
-        <p>12 texnoloji və rəsmi mənbədən xəbərlərin avtomatik toplanması, dublikatların filtirlənməsi və Azərbaycan dilinə adaptasiyası.</p>
+        <p>{{ store.stats.sources_total }} texnoloji və rəsmi mənbədən xəbərlərin avtomatik toplanması, dublikatların filtirlənməsi və Azərbaycan dilinə adaptasiyası.</p>
       </div>
       <div class="banner-quick-actions">
         <button @click="store.grabAllSources()" :disabled="store.loading" class="btn btn-secondary">
@@ -35,7 +35,7 @@
           </div>
         </div>
         <div class="metric-value">{{ store.stats.total }}</div>
-        <div class="metric-footer">12 mənbə üzrə</div>
+        <div class="metric-footer">{{ store.stats.sources_total }} mənbə üzrə</div>
       </div>
 
       <!-- New / Pending -->
@@ -100,7 +100,7 @@
       <div class="section-header">
         <div>
           <h2>Aktiv Mənbələr və Statuslar</h2>
-          <p class="section-desc">12 saytdan ibarət aqreqator şəbəkəsi</p>
+          <p class="section-desc">{{ store.stats.sources_total }} saytdan ibarət aqreqator şəbəkəsi</p>
         </div>
         <router-link to="/sources" class="btn btn-secondary btn-sm">Mənbələri İdarə Et</router-link>
       </div>

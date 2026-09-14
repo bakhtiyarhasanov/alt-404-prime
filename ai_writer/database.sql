@@ -119,6 +119,20 @@ CREATE TABLE IF NOT EXISTS `grab_history` (
   KEY `idx_history_runtime` (`run_time` DESC)
 ) ENGINE=InnoDB;
 
+-- ---------------------------------------------------------------------------
+-- 7. grab_history_html: Raw HTML grabbed for each request
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `grab_history_html` (
+  `id` INT AUTO_INCREMENT NOT NULL,
+  `source_id` VARCHAR(50) NOT NULL,
+  `url` TEXT NOT NULL,
+  `html_content` LONGTEXT DEFAULT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_source` (`source_id`),
+  KEY `idx_created` (`created_at` DESC)
+) ENGINE=InnoDB;
+
 -- ===========================================================================
 -- SEED DATA: 12 INITIAL SOURCES
 -- ===========================================================================
