@@ -477,7 +477,7 @@ export default {
     const formatDateTime = (dateStr) => {
       if (!dateStr) return '—'
       const d = new Date(dateStr)
-      return d.toLocaleString('az-AZ', {
+      return d.toLocaleString('en-GB', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

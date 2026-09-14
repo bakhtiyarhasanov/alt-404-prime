@@ -262,7 +262,7 @@ export default {
 
     const formatDate = (d) => {
       if (!d) return ''
-      return new Date(d).toLocaleString('az-AZ', {
+      return new Date(d).toLocaleString('en-GB', {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       })
     }
@@ -270,7 +270,7 @@ export default {
     const formatDateTime = (dateStr) => {
       if (!dateStr) return '—'
       const d = new Date(dateStr)
-      return d.toLocaleString('az-AZ', {
+      return d.toLocaleString('en-GB', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',

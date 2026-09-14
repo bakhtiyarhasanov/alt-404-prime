@@ -337,7 +337,7 @@ export default {
       if (!dateStr) return '—'
       try {
         const d = new Date(dateStr)
-        return d.toLocaleDateString('az-AZ', {
+        return d.toLocaleDateString('en-GB', {
           year: 'numeric',
           month: 'short',
           day: 'numeric',

@@ -1,8 +1,8 @@
 <template>
   <div class="app-wrapper">
-    <!-- Top Navigation Header (only when logged in) -->
-    <header v-if="authStore.isAuthenticated" class="app-header">
-      <div class="header-inner">
+    <!-- Sidebar Navigation -->
+    <aside v-if="authStore.isAuthenticated" class="app-sidebar" :class="{ 'sidebar-open': isSidebarOpen }">
+      <div class="sidebar-header">
         <div class="brand-group">
           <div class="brand-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -15,70 +15,112 @@
           </div>
           <div class="brand-text">
             <span class="brand-title">AI Writer</span>
-            <span class="brand-sub">Alt404 Prime Intelligence</span>
+            <span class="brand-sub">Alt404 Prime</span>
           </div>
         </div>
+        <button class="btn-close-mobile" @click="isSidebarOpen = false">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
 
-        <nav class="nav-links">
-          <router-link to="/" class="nav-item" active-class="active">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="7"/>
-              <rect x="14" y="3" width="7" height="7"/>
-              <rect x="14" y="14" width="7" height="7"/>
-              <rect x="3" y="14" width="7" height="7"/>
+      <nav class="sidebar-nav">
+        <router-link to="/" class="nav-item" active-class="active" @click="isSidebarOpen = false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <span>İdarə Paneli</span>
+        </router-link>
+
+        <router-link to="/sources" class="nav-item" active-class="active" @click="isSidebarOpen = false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span>Mənbələr ({{ store.stats.sources_total }})</span>
+        </router-link>
+
+        <router-link to="/history" class="nav-item" active-class="active" @click="isSidebarOpen = false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 14 14"/>
+          </svg>
+          <span>Toplanış Tarixçəsi</span>
+        </router-link>
+
+        <router-link to="/news" class="nav-item" active-class="active" @click="isSidebarOpen = false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
+            <path d="M18 14h-8"/>
+            <path d="M15 18h-5"/>
+            <path d="M10 6h8v4h-8V6Z"/>
+          </svg>
+          <span>Xəbər Lenti</span>
+          <span v-if="store.stats.new > 0" class="badge-new">{{ store.stats.new }}</span>
+        </router-link>
+
+        <router-link to="/settings" class="nav-item" active-class="active" @click="isSidebarOpen = false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>Tənzimləmələr</span>
+        </router-link>
+
+        <router-link to="/users" class="nav-item" active-class="active" @click="isSidebarOpen = false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>İstifadəçilər</span>
+        </router-link>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-session-info" v-if="authStore.user">
+          <div class="user-avatar-mini">
+            {{ (authStore.user.name || authStore.user.username).charAt(0).toUpperCase() }}
+          </div>
+          <span class="user-session-name">{{ authStore.user.username }}</span>
+        </div>
+        
+        <button @click="authStore.logout()" class="btn btn-ghost btn-sm btn-logout" title="Sistemdən Çıxış">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Çıxış</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Overlay for mobile -->
+    <div v-if="isSidebarOpen && authStore.isAuthenticated" class="sidebar-overlay" @click="isSidebarOpen = false"></div>
+
+    <!-- Main Content Area -->
+    <div class="app-content-wrapper" :class="{ 'full-width': !authStore.isAuthenticated }">
+      <!-- Top Action Bar -->
+      <header v-if="authStore.isAuthenticated" class="app-topbar">
+        <div class="topbar-left">
+          <button class="btn-menu-mobile" @click="isSidebarOpen = true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
-            <span>İdarə Paneli</span>
-          </router-link>
+          </button>
+        </div>
 
-          <router-link to="/sources" class="nav-item" active-class="active">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="2" y1="12" x2="22" y2="12"/>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            <span>Mənbələr ({{ store.stats.sources_total }})</span>
-          </router-link>
-
-          <router-link to="/history" class="nav-item" active-class="active">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 14 14"/>
-            </svg>
-            <span>Toplanış Tarixçəsi</span>
-          </router-link>
-
-          <router-link to="/news" class="nav-item" active-class="active">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
-              <path d="M18 14h-8"/>
-              <path d="M15 18h-5"/>
-              <path d="M10 6h8v4h-8V6Z"/>
-            </svg>
-            <span>Xəbər Lenti</span>
-            <span v-if="store.stats.new > 0" class="badge-new">{{ store.stats.new }}</span>
-          </router-link>
-
-          <router-link to="/settings" class="nav-item" active-class="active">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-            <span>Tənzimləmələr</span>
-          </router-link>
-
-          <router-link to="/users" class="nav-item" active-class="active">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span>İstifadəçilər</span>
-          </router-link>
-        </nav>
-
-        <div class="header-actions">
-          <!-- Theme Toggle Button -->
+        <div class="topbar-right header-actions">
           <button 
             @click="toggleTheme" 
             class="btn-theme-toggle" 
@@ -99,47 +141,29 @@
             <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
-            <span class="theme-text">{{ currentTheme === 'light' ? 'Tünd' : 'Açıq' }}</span>
+            <span class="theme-text hide-mobile">{{ currentTheme === 'light' ? 'Tünd' : 'Açıq' }}</span>
           </button>
 
           <button @click="store.grabAllSources()" :disabled="store.loading" class="btn btn-secondary btn-sm" title="Bütün mənbələrdən xəbərləri topla">
             <svg class="spin-on-load" :class="{ spinning: store.loading }" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
             </svg>
-            <span>Mənbələri Yoxla</span>
+            <span class="hide-mobile">Mənbələri Yoxla</span>
           </button>
 
           <button @click="store.batchProcess()" :disabled="store.loading || store.stats.new === 0" class="btn btn-primary btn-sm">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
-            <span>Qaralama Hazırla</span>
-          </button>
-
-          <!-- User profile & Logout -->
-          <div class="user-session-info" v-if="authStore.user">
-            <div class="user-avatar-mini">
-              {{ (authStore.user.name || authStore.user.username).charAt(0).toUpperCase() }}
-            </div>
-            <span class="user-session-name">{{ authStore.user.username }}</span>
-          </div>
-
-          <button @click="authStore.logout()" class="btn btn-ghost btn-sm btn-logout" title="Sistemdən Çıxış">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            <span>Çıxış</span>
+            <span class="hide-mobile">Qaralama Hazırla</span>
           </button>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <!-- Main Content Area -->
-    <main class="app-main">
-      <router-view />
-    </main>
+      <main class="app-main">
+        <router-view />
+      </main>
+    </div>
 
     <!-- Toast Notification -->
     <transition name="toast">
@@ -169,6 +193,7 @@ export default {
     const store = useAiWriterStore()
     const authStore = useAuthStore()
     const currentTheme = ref('dark')
+    const isSidebarOpen = ref(false)
 
     const applyTheme = (theme) => {
       document.documentElement.classList.remove('theme-dark', 'theme-light')
@@ -198,7 +223,7 @@ export default {
       }, 45000)
     })
 
-    return { store, authStore, currentTheme, toggleTheme }
+    return { store, authStore, currentTheme, toggleTheme, isSidebarOpen }
   }
 }
 </script>
@@ -236,6 +261,7 @@ export default {
   --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   --bg-header: rgba(14, 19, 31, 0.85);
+  --bg-sidebar: #0a0d14;
   --brand-gradient: linear-gradient(90deg, #FFFFFF, var(--color-primary));
   --nav-bg: rgba(7, 9, 14, 0.6);
   --nav-border: rgba(255, 255, 255, 0.05);
@@ -246,6 +272,7 @@ export default {
   --shadow-dropdown: 0 10px 30px rgba(0, 0, 0, 0.6);
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --sidebar-width: 260px;
 }
 
 :root.theme-light {
@@ -272,8 +299,9 @@ export default {
   --status-generating: #9333ea;
 
   --bg-header: rgba(255, 255, 255, 0.92);
+  --bg-sidebar: #ffffff;
   --brand-gradient: linear-gradient(90deg, #0f172a, #d97706);
-  --nav-bg: #e2e8f0;
+  --nav-bg: #f8fafc;
   --nav-border: #cbd5e1;
   --nav-hover-bg: rgba(0, 0, 0, 0.05);
   --btn-secondary-bg: #ffffff;
@@ -297,35 +325,37 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   transition: background-color 0.25s ease, color 0.25s ease;
+  overflow-x: hidden;
 }
 
 .app-wrapper {
+  display: flex;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Sidebar */
+.app-sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-}
-
-/* Header */
-.app-header {
-  background: var(--bg-header);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border-subtle);
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 50;
-  transition: background 0.25s ease, border-color 0.25s ease;
+  left: 0;
+  height: 100vh;
+  z-index: 60;
+  transition: transform 0.3s ease, background 0.25s ease;
 }
 
-.header-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
+.sidebar-header {
   height: 70px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .brand-group {
@@ -335,8 +365,8 @@ body {
 }
 
 .brand-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, rgba(252, 219, 86, 0.15) 0%, rgba(0, 240, 255, 0.15) 100%);
   border: 1px solid rgba(252, 219, 86, 0.3);
@@ -348,7 +378,7 @@ body {
 
 .brand-title {
   display: block;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.5px;
   background: var(--brand-gradient);
@@ -359,34 +389,40 @@ body {
 
 .brand-sub {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
 
-/* Nav */
-.nav-links {
+.btn-close-mobile {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 20px 12px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--nav-bg);
-  padding: 5px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--nav-border);
-  transition: background 0.25s ease, border-color 0.25s ease;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  font-size: 0.88rem;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   transition: all 0.2s ease;
   position: relative;
 }
@@ -403,11 +439,12 @@ body {
 }
 
 .badge-new {
+  margin-left: auto;
   background: var(--status-new);
   color: #07090e;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
 }
 
@@ -416,11 +453,56 @@ body {
   color: var(--color-primary);
 }
 
-/* Header buttons */
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* App Content Area */
+.app-content-wrapper {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.app-content-wrapper.full-width {
+  margin-left: 0;
+}
+
+/* Topbar */
+.app-topbar {
+  height: 70px;
+  background: var(--bg-header);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.btn-menu-mobile {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 /* Theme Toggle Button */
@@ -497,16 +579,6 @@ body {
   border-color: var(--border-glow);
 }
 
-.btn-cyan {
-  background: var(--color-accent-dim);
-  border: 1px solid rgba(2, 132, 199, 0.3);
-  color: var(--color-accent);
-}
-.btn-cyan:hover:not(:disabled) {
-  background: rgba(2, 132, 199, 0.2);
-  box-shadow: 0 0 15px rgba(2, 132, 199, 0.25);
-}
-
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -524,10 +596,10 @@ body {
 /* Main */
 .app-main {
   flex: 1;
-  max-width: 1400px;
+  padding: 32px 24px;
+  max-width: 1200px;
   width: 100%;
   margin: 0 auto;
-  padding: 32px 24px;
 }
 
 /* Toast */
@@ -571,21 +643,21 @@ body {
 .user-session-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px 4px 6px;
+  gap: 10px;
+  padding: 8px 12px;
   background: var(--user-session-bg);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
 }
 
 .user-avatar-mini {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(252, 219, 86, 0.3) 0%, rgba(0, 240, 255, 0.3) 100%);
   border: 1px solid rgba(0, 240, 255, 0.4);
   color: var(--color-accent);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -593,7 +665,7 @@ body {
 }
 
 .user-session-name {
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
 }
@@ -610,10 +682,66 @@ body {
 .btn-logout {
   color: #f87171 !important;
   border: 1px solid transparent;
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 12px;
 }
 .btn-logout:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.12) !important;
   border-color: rgba(239, 68, 68, 0.3);
   color: #fca5a5 !important;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+  .app-content-wrapper {
+    margin-left: 0;
+  }
+  
+  .app-sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .app-sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+  
+  .sidebar-overlay {
+    display: block;
+  }
+  
+  .btn-menu-mobile {
+    display: block;
+  }
+  
+  .btn-close-mobile {
+    display: block;
+  }
+}
+
+@media (max-width: 600px) {
+  .hide-mobile {
+    display: none;
+  }
+  
+  .btn-sm {
+    padding: 7px 10px;
+  }
+  
+  .app-main {
+    padding: 20px 16px;
+  }
 }
 </style>

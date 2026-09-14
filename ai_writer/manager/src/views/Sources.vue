@@ -304,7 +304,7 @@ export default {
 
     const formatDate = (d) => {
       if (!d) return null
-      return new Date(d).toLocaleString('az-AZ', {
+      return new Date(d).toLocaleString('en-GB', {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       })
     }
