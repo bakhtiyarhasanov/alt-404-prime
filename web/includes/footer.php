@@ -225,6 +225,7 @@ $footerCategories = getVisibleCategories();
         </p>
 
         <!-- Newsletter Subscription -->
+        <?php if (false): // Hidden for now ?>
         <div class="pt-2 max-w-md">
           <label for="newsletter-email"
             class="block text-xs font-semibold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-2">
@@ -254,6 +255,7 @@ $footerCategories = getVisibleCategories();
             </button>
           </form>
         </div>
+        <?php endif; ?>
 
         <!-- Social Media Links (Loaded from settings; hidden if empty) -->
         <?php
