@@ -23,7 +23,11 @@ if ($method === 'GET') {
             $article['published'] = (bool) $article['published'];
             $article['updating'] = (bool) ($article['updating'] ?? false);
             $article['newsletter'] = (bool) ($article['newsletter'] ?? false);
-            $article['versions'] = json_decode($article['versions'] ?? '[]', true) ?: [];
+            
+            // Fetch versions
+            $stmtVer = $db->prepare('SELECT version, title, content, author, created_at FROM article_versions WHERE article_id = :article_id ORDER BY version ASC');
+            $stmtVer->execute(['article_id' => $article['id']]);
+            $article['versions'] = $stmtVer->fetchAll();
 
             // Fetch edit history
             $stmtHist = $db->prepare('
@@ -48,9 +52,11 @@ if ($method === 'GET') {
     } else {
         // Return list with creator details
         $stmt = $db->query('
-            SELECT a.id, a.title, a.slug, a.excerpt, a.category, a.image_url, a.tags, a.featured, a.published, a.updating, a.newsletter, a.code, a.reading_time, a.start_time, a.end_time, a.views, a.created_at, a.updated_at, a.created_by, u.name as creator_name, JSON_LENGTH(a.versions) as version_count
+            SELECT a.id, a.title, a.slug, a.excerpt, a.category, a.image_url, a.tags, a.featured, a.published, a.updating, a.newsletter, a.code, a.reading_time, a.start_time, a.end_time, a.views, a.created_at, a.updated_at, a.created_by, u.name as creator_name, COUNT(v.id) as version_count
             FROM articles a
             LEFT JOIN admin_users u ON a.created_by = u.id
+            LEFT JOIN article_versions v ON a.id = v.article_id
+            GROUP BY a.id
             ORDER BY a.created_at DESC
         ');
         $rows = $stmt->fetchAll();
@@ -129,8 +135,8 @@ if ($method === 'POST') {
     ]);
 
     $stmt = $db->prepare('
-        INSERT INTO articles (title, slug, excerpt, content, category, image_url, tags, featured, published, updating, newsletter, code, reading_time, start_time, end_time, versions, created_by)
-        VALUES (:title, :slug, :excerpt, :content, :category, :image_url, :tags, :featured, :published, :updating, :newsletter, :code, :reading_time, :start_time, :end_time, :versions, :created_by)
+        INSERT INTO articles (title, slug, excerpt, content, category, image_url, tags, featured, published, updating, newsletter, code, reading_time, start_time, end_time, created_by)
+        VALUES (:title, :slug, :excerpt, :content, :category, :image_url, :tags, :featured, :published, :updating, :newsletter, :code, :reading_time, :start_time, :end_time, :created_by)
     ');
     $stmt->execute([
         'title' => $title,
@@ -148,11 +154,21 @@ if ($method === 'POST') {
         'reading_time' => $reading_time,
         'start_time' => $start_time,
         'end_time' => $end_time,
-        'versions' => $versions,
         'created_by' => $currentUser['user_id']
     ]);
 
     $newId = $db->lastInsertId();
+    
+    // Save initial version
+    $stmtVer = $db->prepare('INSERT INTO article_versions (article_id, version, title, content, author, created_at) VALUES (:article_id, 1, :title, :content, :author, :created_at)');
+    $stmtVer->execute([
+        'article_id' => $newId,
+        'title' => $title,
+        'content' => $content,
+        'author' => $currentUser['name'],
+        'created_at' => date('Y-m-d H:i:s')
+    ]);
+
     echo json_encode(['success' => true, 'id' => $newId, 'slug' => $slug]);
     exit;
 }
@@ -296,19 +312,28 @@ if ($method === 'PUT') {
     }
 
     // Save article revision history/versioning
-    $versionsList = json_decode($article['versions'] ?? '[]', true) ?: [];
     if ($content !== $article['content'] || $title !== $article['title']) {
-        $nextVersion = count($versionsList) + 1;
-        $versionsList[] = [
+        $stmtGetVers = $db->prepare('SELECT IFNULL(MAX(version), 0) FROM article_versions WHERE article_id = :article_id');
+        $stmtGetVers->execute(['article_id' => $article['id']]);
+        $currentMaxVer = (int)$stmtGetVers->fetchColumn();
+        
+        $nextVersion = $currentMaxVer + 1;
+        
+        $stmtInsertVer = $db->prepare('INSERT INTO article_versions (article_id, version, title, content, author, created_at) VALUES (:article_id, :version, :title, :content, :author, :created_at)');
+        $stmtInsertVer->execute([
+            'article_id' => $article['id'],
             'version' => $nextVersion,
             'title' => $title,
             'content' => $content,
-            'created_at' => date('c'),
-            'author' => $currentUser['name']
-        ];
+            'author' => $currentUser['name'],
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+        
         // Cap version list to last 15 revisions to prevent overflow
-        if (count($versionsList) > 15) {
-            array_shift($versionsList);
+        $stmtCount = $db->prepare('SELECT COUNT(*) FROM article_versions WHERE article_id = :article_id');
+        $stmtCount->execute(['article_id' => $article['id']]);
+        if ($stmtCount->fetchColumn() > 15) {
+            $db->prepare('DELETE FROM article_versions WHERE article_id = :article_id ORDER BY version ASC LIMIT 1')->execute(['article_id' => $article['id']]);
         }
     }
 
@@ -327,7 +352,7 @@ if ($method === 'PUT') {
 
     $stmt = $db->prepare('
         UPDATE articles 
-        SET title = :title, slug = :slug, excerpt = :excerpt, content = :content, category = :category, image_url = :image_url, tags = :tags, featured = :featured, published = :published, updating = :updating, newsletter = :newsletter, code = :code, reading_time = :reading_time, start_time = :start_time, end_time = :end_time, versions = :versions
+        SET title = :title, slug = :slug, excerpt = :excerpt, content = :content, category = :category, image_url = :image_url, tags = :tags, featured = :featured, published = :published, updating = :updating, newsletter = :newsletter, code = :code, reading_time = :reading_time, start_time = :start_time, end_time = :end_time
         WHERE id = :id
     ');
     $stmt->execute([
@@ -346,7 +371,6 @@ if ($method === 'PUT') {
         'reading_time' => $reading_time,
         'start_time' => $start_time,
         'end_time' => $end_time,
-        'versions' => json_encode($versionsList),
         'id' => $article['id']
     ]);
 

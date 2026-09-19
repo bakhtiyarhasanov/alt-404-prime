@@ -70,20 +70,24 @@ class Publisher {
 
         // If article was already posted to web database, update it (Regeneration mode)
         if (!empty($item['posted_article_id'])) {
-            $checkStmt = $this->webDb->prepare("SELECT id, slug, versions FROM articles WHERE id = :id");
+            $checkStmt = $this->webDb->prepare("SELECT id, slug FROM articles WHERE id = :id");
             $checkStmt->execute(['id' => $item['posted_article_id']]);
             $existing = $checkStmt->fetch();
 
             if ($existing) {
-                $existingVersions = json_decode($existing['versions'] ?? '[]', true) ?: [];
-                $newVerNum = count($existingVersions) + 1;
-                $existingVersions[] = [
+                $stmtGetVers = $this->webDb->prepare('SELECT IFNULL(MAX(version), 0) FROM article_versions WHERE article_id = :article_id');
+                $stmtGetVers->execute(['article_id' => $existing['id']]);
+                $newVerNum = (int)$stmtGetVers->fetchColumn() + 1;
+                
+                $stmtInsertVer = $this->webDb->prepare('INSERT INTO article_versions (article_id, version, title, content, author, created_at) VALUES (:article_id, :version, :title, :content, :author, :created_at)');
+                $stmtInsertVer->execute([
+                    'article_id' => $existing['id'],
                     'version' => $newVerNum,
                     'title' => $title,
                     'content' => $content,
-                    'created_at' => date('c'),
-                    'author' => 'AI Writer (Regenerated v' . $newVerNum . ')'
-                ];
+                    'author' => 'AI Writer (Regenerated v' . $newVerNum . ')',
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
 
                 $updateArt = $this->webDb->prepare("
                     UPDATE articles SET
@@ -92,7 +96,6 @@ class Publisher {
                         content = :content,
                         tags = :tags,
                         reading_time = :reading_time,
-                        versions = :versions,
                         updated_at = NOW()
                     WHERE id = :id
                 ");
@@ -102,7 +105,6 @@ class Publisher {
                     'content' => $content,
                     'tags' => json_encode($tags ?: ['Texnologiya']),
                     'reading_time' => $readingTime,
-                    'versions' => json_encode($existingVersions),
                     'id' => $existing['id']
                 ]);
 
@@ -144,25 +146,16 @@ class Publisher {
         // Generate UUID for article
         $articleId = $this->generateUuid();
 
-        // Initial version tracking
-        $versions = json_encode([[
-            'version' => 1,
-            'title' => $title,
-            'content' => $content,
-            'created_at' => date('c'),
-            'author' => 'AI Writer (' . ($item['source_id'] ?? 'auto') . ')'
-        ]]);
-
         // Insert as Draft (published = 0)
         $insertStmt = $this->webDb->prepare("
             INSERT INTO articles (
                 id, title, slug, excerpt, content, category, 
                 image_url, tags, featured, published, updating, 
-                reading_time, versions, created_at, updated_at
+                reading_time, created_at, updated_at
             ) VALUES (
                 :id, :title, :slug, :excerpt, :content, :category,
                 :image_url, :tags, 0, 0, 0,
-                :reading_time, :versions, NOW(), NOW()
+                :reading_time, NOW(), NOW()
             )
         ");
 
@@ -175,8 +168,16 @@ class Publisher {
             'category' => $category,
             'image_url' => $imageUrl,
             'tags' => json_encode($tags ?: ['Texnologiya']),
-            'reading_time' => $readingTime,
-            'versions' => $versions
+            'reading_time' => $readingTime
+        ]);
+
+        $stmtInsertVer = $this->webDb->prepare('INSERT INTO article_versions (article_id, version, title, content, author, created_at) VALUES (:article_id, 1, :title, :content, :author, :created_at)');
+        $stmtInsertVer->execute([
+            'article_id' => $articleId,
+            'title' => $title,
+            'content' => $content,
+            'author' => 'AI Writer (' . ($item['source_id'] ?? 'auto') . ')',
+            'created_at' => date('Y-m-d H:i:s')
         ]);
 
         // Update grabbed_news record to status 'posted'

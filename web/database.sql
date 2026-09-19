@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS `articles` (
   `start_time` DATETIME DEFAULT NULL,
   `end_time` DATETIME DEFAULT NULL,
   `views` INT UNSIGNED DEFAULT 0,
-  `versions` JSON,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -46,6 +45,20 @@ CREATE TABLE IF NOT EXISTS `articles` (
   KEY `idx_article_category` (`category`),
   KEY `idx_article_created` (`created_at` DESC),
   KEY `idx_article_featured` (`featured`)
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------------
+-- 2a. article_versions
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `article_versions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `article_id` CHAR(36) NOT NULL,
+  `version` INT NOT NULL,
+  `title` TEXT NOT NULL,
+  `content` LONGTEXT,
+  `author` VARCHAR(255) DEFAULT '',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT `fk_av_article` FOREIGN KEY (`article_id`) REFERENCES `articles`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------------
