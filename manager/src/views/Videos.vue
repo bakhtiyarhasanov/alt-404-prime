@@ -19,7 +19,7 @@
                 <td>
                   <div class="vid-cell">
                     <span class="vid-title">{{ vid.title }}</span>
-                    <img :src="vid.thumbnail_url || getYoutubeThumb(vid.youtube_url)" class="vid-thumb" alt="" v-if="vid.thumbnail_url || getYoutubeThumb(vid.youtube_url)">
+                    <img :src="getThumbUrl(vid.thumbnail_url, vid.youtube_url)" class="vid-thumb" alt="" v-if="getThumbUrl(vid.thumbnail_url, vid.youtube_url)">
                   </div>
                 </td>
                 <td>
@@ -58,11 +58,29 @@
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <label class="label">Thumbnail (Önşəkil) URL</label>
-              <button type="button" @click="fetchYtThumb" style="font-size: 10px; color: var(--color-primary); background: none; border: none; cursor: pointer;">YouTube-dan çək</button>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <button
+                  type="button"
+                  @click="triggerThumbUpload"
+                  :disabled="thumbUploading"
+                  style="font-size: 10px; color: #4ade80; background: none; border: none; cursor: pointer; font-weight: 600;"
+                >
+                  {{ thumbUploading ? 'Yüklənir...' : '📁 Fayldan yüklə' }}
+                </button>
+                <span style="color: var(--color-border); font-size: 10px;">|</span>
+                <button type="button" @click="fetchYtThumb" style="font-size: 10px; color: var(--color-primary); background: none; border: none; cursor: pointer; font-weight: 600;">YouTube-dan çək</button>
+              </div>
             </div>
-            <input v-model="form.thumbnail_url" type="text" placeholder="https://img.youtube.com/vi/..." class="input">
-            <div v-if="form.thumbnail_url || getYoutubeThumb(form.youtube_url)" style="margin-top: 8px;">
-              <img :src="form.thumbnail_url || getYoutubeThumb(form.youtube_url)" style="width: 140px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid var(--color-border);" alt="Preview">
+            <input
+              ref="thumbFileInput"
+              type="file"
+              accept="image/*"
+              style="display: none;"
+              @change="handleThumbUpload"
+            />
+            <input v-model="form.thumbnail_url" type="text" placeholder="https://img.youtube.com/vi/... (və ya fərdi şəkil linki)" class="input">
+            <div v-if="getThumbUrl(form.thumbnail_url, form.youtube_url)" style="margin-top: 8px;">
+              <img :src="getThumbUrl(form.thumbnail_url, form.youtube_url)" style="width: 140px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid var(--color-border);" alt="Preview">
             </div>
           </div>
 
@@ -85,7 +103,7 @@
 
 <script>
 import { ref, reactive, onMounted } from 'vue'
-import client from '../api/client'
+import client, { SITE_URL } from '../api/client'
 
 export default {
   name: 'VideosView',
@@ -94,6 +112,8 @@ export default {
     const isEdit = ref(false)
     const saving = ref(false)
     const editingId = ref(null)
+    const thumbUploading = ref(false)
+    const thumbFileInput = ref(null)
 
     const form = reactive({
       title: '',
@@ -142,12 +162,57 @@ export default {
       return `https://img.youtube.com/vi/${id}/hqdefault.jpg`
     }
 
+    const getThumbUrl = (thumbUrl, ytUrl = '') => {
+      if (!thumbUrl && !ytUrl) return ''
+      if (thumbUrl && !thumbUrl.includes('youtube.com/watch') && !thumbUrl.includes('youtube.com/shorts') && !thumbUrl.includes('youtu.be/')) {
+        if (thumbUrl.startsWith('/')) {
+          return SITE_URL + thumbUrl
+        }
+        return thumbUrl
+      }
+      const target = (thumbUrl && (thumbUrl.includes('youtube') || thumbUrl.includes('youtu.be'))) ? thumbUrl : ytUrl
+      return getYoutubeThumb(target)
+    }
+
+    const triggerThumbUpload = () => {
+      if (thumbFileInput.value) {
+        thumbFileInput.value.click()
+      }
+    }
+
+    const handleThumbUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      thumbUploading.value = true
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('title', 'Video Thumbnail')
+        formData.append('alt_text', form.title || 'Video Thumbnail')
+
+        const { data } = await client.post('/media', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+
+        if (data.success && data.url) {
+          form.thumbnail_url = data.url
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Şəkil yükləmə zamanı xəta baş verdi')
+      } finally {
+        thumbUploading.value = false
+        if (thumbFileInput.value) thumbFileInput.value.value = ''
+      }
+    }
+
     const onYoutubeChange = () => {
       const url = (form.youtube_url || '').trim()
       if (!url) return
-      if (!form.thumbnail_url || form.thumbnail_url.includes('img.youtube.com')) {
-        const thumb = getYoutubeThumb(url)
-        if (thumb) form.thumbnail_url = thumb
+      const thumb = getYoutubeThumb(url)
+      if (thumb && (!form.thumbnail_url || form.thumbnail_url.includes('img.youtube.com') || form.thumbnail_url.includes('youtube') || form.thumbnail_url.includes('youtu.be') || extractYoutubeId(form.thumbnail_url))) {
+        form.thumbnail_url = thumb
       }
     }
 
@@ -197,7 +262,7 @@ export default {
     const save = async () => {
       saving.value = true
       try {
-        if (!form.thumbnail_url && form.youtube_url) {
+        if (!form.thumbnail_url || form.thumbnail_url.includes('youtube.com/watch') || form.thumbnail_url.includes('youtube.com/shorts') || form.thumbnail_url.includes('youtu.be/')) {
           form.thumbnail_url = getYoutubeThumb(form.youtube_url)
         }
         if (isEdit.value) {
@@ -230,9 +295,14 @@ export default {
       isEdit,
       saving,
       form,
+      thumbUploading,
+      thumbFileInput,
       getYoutubeThumb,
+      getThumbUrl,
       onYoutubeChange,
       fetchYtThumb,
+      triggerThumbUpload,
+      handleThumbUpload,
       edit,
       resetForm,
       save,

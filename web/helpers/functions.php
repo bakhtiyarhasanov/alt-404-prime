@@ -467,8 +467,23 @@ function getHomeVideos(int $limit = 4): array
     $rows = $stmt->fetchAll();
     foreach ($rows as &$row) {
         // Automatically derive YouTube thumbnail if missing
+        $needsDbUpdate = false;
         if (empty($row['thumbnail_url']) && !empty($row['youtube_url'])) {
             $row['thumbnail_url'] = getYouTubeThumbnail($row['youtube_url']);
+            $needsDbUpdate = true;
+        } elseif (!empty($row['thumbnail_url']) && extractYouTubeID($row['thumbnail_url'])) {
+            if (strpos($row['thumbnail_url'], 'img.youtube.com') === false) {
+                $row['thumbnail_url'] = getYouTubeThumbnail($row['thumbnail_url'] ?: ($row['youtube_url'] ?? ''));
+                $needsDbUpdate = true;
+            }
+        }
+
+        if ($needsDbUpdate && !empty($row['id']) && !empty($row['thumbnail_url'])) {
+            try {
+                $upStmt = $db->prepare('UPDATE home_videos SET thumbnail_url = ? WHERE id = ?');
+                $upStmt->execute([$row['thumbnail_url'], $row['id']]);
+            } catch (\Throwable $e) {
+            }
         }
     }
     return $rows;
