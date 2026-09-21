@@ -45,7 +45,8 @@ if ($method === 'POST') {
     // Check if file upload is present
     if (isset($_FILES['file'])) {
         $file = $_FILES['file'];
-        $uploadDir = __DIR__ . '/../uploads/';
+        $yearMonthDay = date('Y/m/d');
+        $uploadDir = __DIR__ . '/../uploads/' . $yearMonthDay . '/';
         if (!file_exists($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
@@ -54,7 +55,7 @@ if ($method === 'POST') {
         $targetPath = $uploadDir . $fileName;
 
         if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-            $value = '/uploads/' . $fileName;
+            $value = '/uploads/' . $yearMonthDay . '/' . $fileName;
             
             // Log in media library for cataloging
             $stmt = $db->prepare('

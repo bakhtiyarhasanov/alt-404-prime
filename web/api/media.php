@@ -24,7 +24,8 @@ if ($method === 'POST') {
             exit;
         }
 
-        $uploadDir = __DIR__ . '/../uploads/';
+        $yearMonthDay = date('Y/m/d');
+        $uploadDir = __DIR__ . '/../uploads/' . $yearMonthDay . '/';
         if (!file_exists($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
@@ -42,7 +43,7 @@ if ($method === 'POST') {
         }
 
         if (file_put_contents($targetPath, $content)) {
-            $url = '/uploads/' . $fileName;
+            $url = '/uploads/' . $yearMonthDay . '/' . $fileName;
             $db = getDB();
             $stmt = $db->prepare('
                 INSERT INTO media_library (url, alt_text, title, file_name)
@@ -75,7 +76,8 @@ if ($method === 'POST') {
     $alt_text = $_POST['alt_text'] ?? '';
 
     // Create uploads folder if missing
-    $uploadDir = __DIR__ . '/../uploads/';
+    $yearMonthDay = date('Y/m/d');
+    $uploadDir = __DIR__ . '/../uploads/' . $yearMonthDay . '/';
     if (!file_exists($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
@@ -85,7 +87,7 @@ if ($method === 'POST') {
     $targetPath = $uploadDir . $fileName;
 
     if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-        $url = '/uploads/' . $fileName;
+        $url = '/uploads/' . $yearMonthDay . '/' . $fileName;
         $db = getDB();
         $stmt = $db->prepare('
             INSERT INTO media_library (url, alt_text, title, file_name)
