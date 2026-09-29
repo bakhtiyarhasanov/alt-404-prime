@@ -264,15 +264,24 @@ $clientArticlesJson = json_encode(array_map(function ($a) {
           </a>
 
           <?php foreach ($navCategories as $cat): ?>
+        
             <?php
             $isCatActive = ($activeCategorySlug === $cat['slug'] || $currentPath === '/' . $cat['slug']);
             $cleanLabel = preg_replace('/\s+Xəbərləri$/iu', '', $cat['label']);
             ?>
-            <a href="/<?= e($cat['slug']) ?>" id="nav-item-<?= e($cat['slug']) ?>"
-              class="px-3 py-1.5 rounded-sm text-xs sm:text-[13px] tracking-wider uppercase transition-all duration-150 whitespace-nowrap shrink-0 cursor-pointer <?= $isCatActive ? 'bg-[#fcdb56] text-[#080117] shadow-sm ring-1 ring-[#fcdb56] font-bold' : 'text-neutral-800 hover:text-neutral-950 hover:bg-neutral-200/50 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-[#1a0f35] font-medium' ?>">
+            <a
+              href="/<?= e($cat['slug']) ?>" id="nav-item-<?= e($cat['slug']) ?>"
+                class="px-3 py-1.5 rounded-sm text-xs sm:text-[13px] tracking-wider uppercase transition-all duration-150 whitespace-nowrap shrink-0 cursor-pointer <?= $isCatActive ? 'bg-[#fcdb56] text-[#080117] shadow-sm ring-1 ring-[#fcdb56] font-bold' : 'text-neutral-800 hover:text-neutral-950 hover:bg-neutral-200/50 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-[#1a0f35] font-medium' ?>">
               <?= e($cleanLabel) ?>
             </a>
           <?php endforeach; ?>
+
+          <?php $isAllNews = ($currentPath === '/xeberler'); ?>
+          <a href="/xeberler" id="nav-item-all-news"
+            class="px-3 py-1.5 rounded-sm text-xs sm:text-[13px] tracking-wider uppercase transition-all duration-150 whitespace-nowrap shrink-0 cursor-pointer text-white hover:opacity-90 font-bold <?= $isAllNews ? 'ring-2 ring-offset-1 ring-[#ff5858] dark:ring-offset-[#0a021c]' : '' ?>"
+            style="background-color: #ff5858;">
+            XƏBƏR LENTİ
+          </a>
         </div>
       </div>
     </nav>

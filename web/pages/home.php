@@ -3,6 +3,13 @@
  * Homepage for ALT404 Prime.
  * Full modern redesign matching Google AI Studio app export.
  */
+
+$isMobile = preg_match('/Mobile|Android|BlackBerry|iPhone|Windows Phone/i', $_SERVER['HTTP_USER_AGENT'] ?? '');
+if ($isMobile) {
+    require_once __DIR__ . '/news.php';
+    exit;
+}
+
 $pageTitle = 'ALT404 | Azərbaycanın Peşəkar Texnologiya Mediası';
 $pageDescription = 'ALT404 - Azərbaycanın peşəkar texnologiya mediası — sürətli, dərin və minimal | Xəbərlər, analitik icmallar və eksklüziv layihələr';
 
@@ -42,16 +49,8 @@ $hasSpotlightAd = !empty($spotlightAd) && !empty($spotlightAd['enabled']) && !em
 $spotlightCount = $hasSpotlightAd ? 3 : 4;
 $spotlightArticles = getFeaturedArticles($spotlightCount);
 
-// Group remaining articles by category for category news sections
+// Fetch visible categories
 $categories = getVisibleCategories();
-$articlesByCategory = [];
-foreach ($allArticles as $art) {
-  $c = $art['category'];
-  if (!isset($articlesByCategory[$c])) {
-    $articlesByCategory[$c] = [];
-  }
-  $articlesByCategory[$c][] = $art;
-}
 
 // Videos for VİDEOLAR section (from database, no empty placeholders)
 $videosList = getHomeVideos(4);
@@ -107,6 +106,7 @@ require_once __DIR__ . '/../includes/header.php';
     <?php if (!empty($spotlightArticles)): ?>
       <section id="hero-spotlight-section" class="w-full pt-4 pb-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
 
             <?php foreach ($spotlightArticles as $index => $art): ?>
@@ -153,8 +153,7 @@ require_once __DIR__ . '/../includes/header.php';
                   </button>
 
                   <!-- Bottom Image Overlay Details (gradient scoped strictly to text area) -->
-                  <div
-                    class="absolute bottom-0 inset-x-0 p-4 pt-16 text-white pointer-events-none"
+                  <div class="absolute bottom-0 inset-x-0 p-4 pt-16 text-white pointer-events-none"
                     style="background: linear-gradient(to top, rgba(8, 1, 23, 0.98) 0%, rgba(8, 1, 23, 0.88) 60%, transparent 100%);">
                     <div class="flex items-center gap-2 text-[11px] text-neutral-300 mb-1.5 font-medium drop-shadow-sm">
                       <span class="text-[#fcdb56] font-semibold"><?= $readTime ?> dəq. oxu</span>
@@ -195,8 +194,8 @@ require_once __DIR__ . '/../includes/header.php';
               <!-- 4th Card: Full-Height Advertisement Banner -->
               <aside id="spotlight-ad-banner"
                 class="group relative bg-white dark:bg-[#120726] rounded-lg overflow-hidden border border-neutral-200/90 dark:border-[#22153e] shadow-xs hover:shadow-md transition-all duration-200">
-                <a href="<?= e($spotlightAd['link_url'] ?: 'https://alt404.az') ?>" target="_blank"
-                  rel="noopener noreferrer" class="block w-full h-full cursor-pointer relative" title="Reklam">
+                <a href="<?= e($spotlightAd['link_url'] ?: 'https://alt404.az') ?>" target="_blank" rel="noopener noreferrer"
+                  class="block w-full h-full cursor-pointer relative" title="Reklam">
                   <img src="<?= e($spotlightAd['image_url']) ?>" alt="Reklam"
                     class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300 ease-out"
                     loading="eager" />
@@ -285,12 +284,11 @@ require_once __DIR__ . '/../includes/header.php';
     $categoryIndex = 0;
     foreach ($categories as $catItem):
       $catSlug = $catItem['slug'];
-      $catArticles = $articlesByCategory[$catSlug] ?? [];
-      if (empty($catArticles))
+      $displayFour = getArticlesByCategorySlugs($catSlug, 4);
+      if (empty($displayFour))
         continue;
 
       $categoryIndex++;
-      $displayFour = array_slice($catArticles, 0, 4);
       ?>
       <section id="section-<?= e($catSlug) ?>" class="w-full py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -361,25 +359,23 @@ require_once __DIR__ . '/../includes/header.php';
             <?php foreach ($specialProjects as $idx => $proj): ?>
               <div id="project-poster-<?= $idx + 1 ?>"
                 class="group relative cursor-pointer flex flex-col rounded-lg overflow-hidden border border-[#261545] hover:border-[#fcdb56] bg-[#120726] shadow-lg hover:shadow-[#fcdb56]/10 transition-all duration-300 transform hover:-translate-y-1"
-                data-video-url="<?= e($proj['youtube_url']) ?>"
-                data-video-title="<?= e($proj['title']) ?>"
+                data-video-url="<?= e($proj['youtube_url']) ?>" data-video-title="<?= e($proj['title']) ?>"
                 data-video-subtitle="<?= e($proj['subtitle'] ?? '') ?>"
                 data-video-category="<?= e($proj['category'] ?? 'XÜSUSİ LAYİHƏ') ?>"
-                data-video-description="<?= e($proj['description'] ?? '') ?>"
-                data-video-format="shorts">
+                data-video-description="<?= e($proj['description'] ?? '') ?>" data-video-format="shorts">
                 <div class="relative aspect-[9/16] w-full overflow-hidden bg-[#080117]">
                   <?php
                   $pThumb = !empty($proj['image']) ? $proj['image'] : getYouTubeThumbnail($proj['youtube_url'] ?? '');
                   if (!empty($pThumb) && extractYouTubeID($pThumb) && strpos($pThumb, 'img.youtube.com') === false) {
-                      $pThumb = getYouTubeThumbnail($pThumb);
+                    $pThumb = getYouTubeThumbnail($pThumb);
                   }
                   if (empty($pThumb) && !empty($proj['youtube_url'])) {
-                      $pThumb = getYouTubeThumbnail($proj['youtube_url']);
+                    $pThumb = getYouTubeThumbnail($proj['youtube_url']);
                   }
-                  
+
                   // Layihələr 9:16 formatındadır, buna görə həmişə oar2.jpg yoxla, yoxdursa onerror hqdefault-a qayıdacaq
                   if (!empty($pThumb) && strpos($pThumb, 'hqdefault.jpg') !== false) {
-                      $pThumb = str_replace('hqdefault.jpg', 'oar2.jpg', $pThumb);
+                    $pThumb = str_replace('hqdefault.jpg', 'oar2.jpg', $pThumb);
                   }
                   ?>
                   <img src="<?= e($pThumb) ?>" alt="<?= e($proj['title']) ?>"
