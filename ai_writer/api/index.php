@@ -36,19 +36,22 @@ $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 // Helper response functions
-function jsonOut($data, int $status = 200): void {
+function jsonOut($data, int $status = 200): void
+{
     http_response_code($status);
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function jsonErr(string $message, int $status = 400): void {
+function jsonErr(string $message, int $status = 400): void
+{
     http_response_code($status);
     echo json_encode(['error' => $message, 'success' => false], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function getBearerToken(): ?string {
+function getBearerToken(): ?string
+{
     $headers = null;
     if (isset($_SERVER['Authorization'])) {
         $headers = trim($_SERVER['Authorization']);
@@ -67,7 +70,8 @@ function getBearerToken(): ?string {
     return null;
 }
 
-function verifyAuth(PDO $db): array {
+function verifyAuth(PDO $db): array
+{
     $token = getBearerToken();
     if (!$token) {
         jsonErr('Giriş tələb olunur', 401);
@@ -114,7 +118,7 @@ try {
     if ($endpoint === 'auth') {
         if ($action === 'login') {
             $username = trim($input['username'] ?? '');
-            $password = (string)($input['password'] ?? '');
+            $password = (string) ($input['password'] ?? '');
 
             if (empty($username) || empty($password)) {
                 jsonErr('İstifadəçi adı və şifrə daxil edilməlidir', 400);
@@ -143,7 +147,7 @@ try {
                 'success' => true,
                 'token' => $sessionToken,
                 'user' => [
-                    'id' => (int)$user['id'],
+                    'id' => (int) $user['id'],
                     'username' => $user['username'],
                     'name' => $user['name'] ?: $user['username']
                 ]
@@ -155,7 +159,7 @@ try {
             jsonOut([
                 'success' => true,
                 'user' => [
-                    'id' => (int)$currentUser['id'],
+                    'id' => (int) $currentUser['id'],
                     'username' => $currentUser['username'],
                     'name' => $currentUser['name'] ?: $currentUser['username'],
                     'created_at' => $currentUser['created_at']
@@ -184,37 +188,40 @@ try {
     // ------------------------------------------------------------------------
     if ($endpoint === 'users') {
         if ($method === 'GET') {
-            $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+            $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
             if ($id > 0) {
                 $stmt = $db->prepare("SELECT id, username, name, created_at, updated_at FROM users WHERE id = :id");
                 $stmt->execute(['id' => $id]);
                 $u = $stmt->fetch();
-                if (!$u) jsonErr('İstifadəçi tapılmadı', 404);
-                $u['id'] = (int)$u['id'];
+                if (!$u)
+                    jsonErr('İstifadəçi tapılmadı', 404);
+                $u['id'] = (int) $u['id'];
                 jsonOut(['success' => true, 'user' => $u]);
             }
 
             $stmt = $db->query("SELECT id, username, name, created_at, updated_at FROM users ORDER BY id ASC");
             $users = $stmt->fetchAll();
             foreach ($users as &$u) {
-                $u['id'] = (int)$u['id'];
+                $u['id'] = (int) $u['id'];
             }
             jsonOut(['success' => true, 'users' => $users]);
         }
 
         if ($method === 'POST') {
             if ($action === 'update') {
-                $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
-                if (!$id) jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
+                $id = (int) ($_GET['id'] ?? $input['id'] ?? 0);
+                if (!$id)
+                    jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
 
                 $stmt = $db->prepare("SELECT * FROM users WHERE id = :id");
                 $stmt->execute(['id' => $id]);
                 $targetUser = $stmt->fetch();
-                if (!$targetUser) jsonErr('İstifadəçi tapılmadı', 404);
+                if (!$targetUser)
+                    jsonErr('İstifadəçi tapılmadı', 404);
 
                 $username = trim($input['username'] ?? $targetUser['username']);
                 $name = trim($input['name'] ?? $targetUser['name']);
-                $password = (string)($input['password'] ?? '');
+                $password = (string) ($input['password'] ?? '');
 
                 if ($username !== $targetUser['username']) {
                     if (strlen($username) < 3 || !preg_match('/^[a-zA-Z0-9_\.\-]+$/', $username)) {
@@ -243,13 +250,14 @@ try {
             }
 
             if ($action === 'delete') {
-                $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
-                if (!$id) jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
-                if ($id === (int)$currentUser['id']) {
+                $id = (int) ($_GET['id'] ?? $input['id'] ?? 0);
+                if (!$id)
+                    jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
+                if ($id === (int) $currentUser['id']) {
                     jsonErr('Öz hesabınızı silə bilməzsiniz', 400);
                 }
 
-                $total = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+                $total = (int) $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
                 if ($total <= 1) {
                     jsonErr('Sistemdə ən azı bir istifadəçi qalmalıdır', 400);
                 }
@@ -262,7 +270,7 @@ try {
             // Create new user (admin-only, no public registration)
             $username = trim($input['username'] ?? '');
             $name = trim($input['name'] ?? '');
-            $password = (string)($input['password'] ?? '');
+            $password = (string) ($input['password'] ?? '');
 
             if (empty($username) || strlen($username) < 3) {
                 jsonErr('İstifadəçi adı ən azı 3 simvol olmalıdır');
@@ -290,23 +298,25 @@ try {
 
             jsonOut([
                 'success' => true,
-                'id' => (int)$db->lastInsertId(),
+                'id' => (int) $db->lastInsertId(),
                 'message' => 'Yeni istifadəçi uğurla yaradıldı'
             ]);
         }
 
         if ($method === 'PUT') {
-            $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
-            if (!$id) jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
+            $id = (int) ($_GET['id'] ?? $input['id'] ?? 0);
+            if (!$id)
+                jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
 
             $stmt = $db->prepare("SELECT * FROM users WHERE id = :id");
             $stmt->execute(['id' => $id]);
             $targetUser = $stmt->fetch();
-            if (!$targetUser) jsonErr('İstifadəçi tapılmadı', 404);
+            if (!$targetUser)
+                jsonErr('İstifadəçi tapılmadı', 404);
 
             $username = trim($input['username'] ?? $targetUser['username']);
             $name = trim($input['name'] ?? $targetUser['name']);
-            $password = (string)($input['password'] ?? '');
+            $password = (string) ($input['password'] ?? '');
 
             if ($username !== $targetUser['username']) {
                 if (strlen($username) < 3 || !preg_match('/^[a-zA-Z0-9_\.\-]+$/', $username)) {
@@ -335,13 +345,14 @@ try {
         }
 
         if ($method === 'DELETE') {
-            $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
-            if (!$id) jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
-            if ($id === (int)$currentUser['id']) {
+            $id = (int) ($_GET['id'] ?? $input['id'] ?? 0);
+            if (!$id)
+                jsonErr('İstifadəçi ID-si göstərilməlidir', 400);
+            if ($id === (int) $currentUser['id']) {
                 jsonErr('Öz hesabınızı silə bilməzsiniz', 400);
             }
 
-            $total = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            $total = (int) $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
             if ($total <= 1) {
                 jsonErr('Sistemdə ən azı bir istifadəçi qalmalıdır', 400);
             }
@@ -357,15 +368,15 @@ try {
     // ------------------------------------------------------------------------
     if ($endpoint === 'stats') {
         $stats = [
-            'total' => (int)$db->query("SELECT COUNT(*) FROM grabbed_news")->fetchColumn(),
-            'new' => (int)$db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'new'")->fetchColumn(),
-            'posted' => (int)$db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'posted'")->fetchColumn(),
-            'duplicate' => (int)$db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'duplicate'")->fetchColumn(),
-            'error' => (int)$db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'error'")->fetchColumn(),
-            'generating' => (int)$db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'generating'")->fetchColumn(),
-            'sources_total' => (int)$db->query("SELECT COUNT(*) FROM sources")->fetchColumn(),
-            'sources_active' => (int)$db->query("SELECT COUNT(*) FROM sources WHERE is_enabled = 1")->fetchColumn(),
-            'sources_rewrite' => (int)$db->query("SELECT COUNT(*) FROM sources WHERE rewrite_enabled = 1")->fetchColumn(),
+            'total' => (int) $db->query("SELECT COUNT(*) FROM grabbed_news")->fetchColumn(),
+            'new' => (int) $db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'new'")->fetchColumn(),
+            'posted' => (int) $db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'posted'")->fetchColumn(),
+            'duplicate' => (int) $db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'duplicate'")->fetchColumn(),
+            'error' => (int) $db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'error'")->fetchColumn(),
+            'generating' => (int) $db->query("SELECT COUNT(*) FROM grabbed_news WHERE status = 'generating'")->fetchColumn(),
+            'sources_total' => (int) $db->query("SELECT COUNT(*) FROM sources")->fetchColumn(),
+            'sources_active' => (int) $db->query("SELECT COUNT(*) FROM sources WHERE is_enabled = 1")->fetchColumn(),
+            'sources_rewrite' => (int) $db->query("SELECT COUNT(*) FROM sources WHERE rewrite_enabled = 1")->fetchColumn(),
         ];
         jsonOut(['success' => true, 'stats' => $stats]);
     }
@@ -387,28 +398,30 @@ try {
             ");
             $sources = $stmt->fetchAll();
             foreach ($sources as &$src) {
-                $src['is_enabled'] = (bool)$src['is_enabled'];
-                $src['rewrite_enabled'] = (bool)$src['rewrite_enabled'];
-                $src['retry_interval_minutes'] = (int)$src['retry_interval_minutes'];
-                $src['last_run_collected'] = $src['last_run_collected'] !== null ? (int)$src['last_run_collected'] : null;
-                $src['last_run_added'] = $src['last_run_added'] !== null ? (int)$src['last_run_added'] : null;
-                $src['last_run_duration'] = $src['last_run_duration'] !== null ? (float)$src['last_run_duration'] : null;
+                $src['is_enabled'] = (bool) $src['is_enabled'];
+                $src['rewrite_enabled'] = (bool) $src['rewrite_enabled'];
+                $src['retry_interval_minutes'] = (int) $src['retry_interval_minutes'];
+                $src['last_run_collected'] = $src['last_run_collected'] !== null ? (int) $src['last_run_collected'] : null;
+                $src['last_run_added'] = $src['last_run_added'] !== null ? (int) $src['last_run_added'] : null;
+                $src['last_run_duration'] = $src['last_run_duration'] !== null ? (float) $src['last_run_duration'] : null;
             }
             jsonOut(['success' => true, 'sources' => $sources]);
         }
 
         if ($method === 'PUT' || ($method === 'POST' && isset($_GET['action']) && $_GET['action'] === 'update')) {
             $id = $_GET['id'] ?? $input['id'] ?? '';
-            if (!$id) jsonErr("Source ID required");
+            if (!$id)
+                jsonErr("Source ID required");
 
             $stmt = $db->prepare("SELECT * FROM sources WHERE id = :id");
             $stmt->execute(['id' => $id]);
             $src = $stmt->fetch();
-            if (!$src) jsonErr("Source not found", 404);
+            if (!$src)
+                jsonErr("Source not found", 404);
 
             $isEnabled = isset($input['is_enabled']) ? ($input['is_enabled'] ? 1 : 0) : $src['is_enabled'];
             $rewriteEnabled = isset($input['rewrite_enabled']) ? ($input['rewrite_enabled'] ? 1 : 0) : $src['rewrite_enabled'];
-            $retryMinutes = isset($input['retry_interval_minutes']) ? max(5, (int)$input['retry_interval_minutes']) : $src['retry_interval_minutes'];
+            $retryMinutes = isset($input['retry_interval_minutes']) ? max(5, (int) $input['retry_interval_minutes']) : $src['retry_interval_minutes'];
             $category = $input['category'] ?? $src['category'];
 
             $upd = $db->prepare("
@@ -432,7 +445,8 @@ try {
             $action = $_GET['action'] ?? $input['action'] ?? '';
             if ($action === 'grab') {
                 $id = $_GET['id'] ?? $input['id'] ?? '';
-                if (!$id) jsonErr("Source ID required");
+                if (!$id)
+                    jsonErr("Source ID required");
                 try {
                     $res = $manager->runSource($id, true);
                     jsonOut(['success' => true, 'result' => $res]);
@@ -453,8 +467,8 @@ try {
     // ------------------------------------------------------------------------
     if ($endpoint === 'history' || $endpoint === 'grab-history') {
         $sourceId = $_GET['source_id'] ?? 'all';
-        $page = max(1, (int)($_GET['page'] ?? 1));
-        $limit = max(1, min(100, (int)($_GET['limit'] ?? 25)));
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $limit = max(1, min(100, (int) ($_GET['limit'] ?? 25)));
 
         $historyData = $manager->getGrabHistory($sourceId, $limit, $page);
         $statsData = $manager->getGrabHistoryStats();
@@ -478,8 +492,8 @@ try {
             $status = $_GET['status'] ?? 'all';
             $sourceId = $_GET['source_id'] ?? 'all';
             $search = trim($_GET['search'] ?? '');
-            $page = max(1, (int)($_GET['page'] ?? 1));
-            $limit = max(1, min(100, (int)($_GET['limit'] ?? 20)));
+            $page = max(1, (int) ($_GET['page'] ?? 1));
+            $limit = max(1, min(100, (int) ($_GET['limit'] ?? 20)));
             $offset = ($page - 1) * $limit;
 
             $where = [];
@@ -505,7 +519,7 @@ try {
             // Total count
             $countStmt = $db->prepare("SELECT COUNT(*) FROM grabbed_news n {$whereSql}");
             $countStmt->execute($params);
-            $totalItems = (int)$countStmt->fetchColumn();
+            $totalItems = (int) $countStmt->fetchColumn();
 
             // Fetch items with source info
             $query = "
@@ -523,8 +537,8 @@ try {
             foreach ($items as &$item) {
                 $item['tags'] = is_string($item['tags']) ? json_decode($item['tags'], true) : $item['tags'];
                 $item['rewritten_tags'] = is_string($item['rewritten_tags']) ? json_decode($item['rewritten_tags'], true) : $item['rewritten_tags'];
-                $item['is_duplicate'] = (bool)$item['is_duplicate'];
-                $item['source_rewrite_enabled'] = (bool)$item['source_rewrite_enabled'];
+                $item['is_duplicate'] = (bool) $item['is_duplicate'];
+                $item['source_rewrite_enabled'] = (bool) $item['source_rewrite_enabled'];
             }
 
             jsonOut([
@@ -540,10 +554,11 @@ try {
         // Actions on news items
         if ($method === 'POST') {
             $action = $_GET['action'] ?? $input['action'] ?? '';
-            $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
+            $id = (int) ($_GET['id'] ?? $input['id'] ?? 0);
 
             if ($action === 'process' || $action === 'regenerate') {
-                if (!$id) jsonErr("News ID required");
+                if (!$id)
+                    jsonErr("News ID required");
                 $result = $manager->processNewsItem($id, true);
                 jsonOut([
                     'success' => true,
@@ -564,7 +579,7 @@ try {
                 $errors = [];
                 foreach ($ids as $newsId) {
                     try {
-                        $res = $manager->processNewsItem((int)$newsId);
+                        $res = $manager->processNewsItem((int) $newsId);
                         $processed[] = ['id' => $newsId, 'slug' => $res['slug']];
                     } catch (Throwable $e) {
                         $errors[] = ['id' => $newsId, 'error' => $e->getMessage()];
@@ -575,11 +590,13 @@ try {
             }
 
             if ($action === 'toggle-duplicate') {
-                if (!$id) jsonErr("News ID required");
+                if (!$id)
+                    jsonErr("News ID required");
                 $stmt = $db->prepare("SELECT is_duplicate, status FROM grabbed_news WHERE id = :id");
                 $stmt->execute(['id' => $id]);
                 $cur = $stmt->fetch();
-                if (!$cur) jsonErr("News not found", 404);
+                if (!$cur)
+                    jsonErr("News not found", 404);
 
                 $newDup = $cur['is_duplicate'] ? 0 : 1;
                 $newStatus = $newDup ? 'duplicate' : 'new';
@@ -588,25 +605,27 @@ try {
                     SET is_duplicate = :dup, status = :st, status_message = :msg 
                     WHERE id = :id
                 ")->execute([
-                    'dup' => $newDup,
-                    'st' => $newStatus,
-                    'msg' => $newDup ? 'Manually marked as duplicate' : 'Duplicate flag removed manually',
-                    'id' => $id
-                ]);
+                            'dup' => $newDup,
+                            'st' => $newStatus,
+                            'msg' => $newDup ? 'Manually marked as duplicate' : 'Duplicate flag removed manually',
+                            'id' => $id
+                        ]);
 
-                jsonOut(['success' => true, 'status' => $newStatus, 'is_duplicate' => (bool)$newDup]);
+                jsonOut(['success' => true, 'status' => $newStatus, 'is_duplicate' => (bool) $newDup]);
             }
 
             if ($action === 'retry') {
-                if (!$id) jsonErr("News ID required");
+                if (!$id)
+                    jsonErr("News ID required");
                 $db->prepare("UPDATE grabbed_news SET status = 'new', status_message = NULL WHERE id = :id")->execute(['id' => $id]);
                 jsonOut(['success' => true, 'message' => "News #{$id} reset to 'new' status"]);
             }
         }
 
         if ($method === 'DELETE') {
-            $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
-            if (!$id) jsonErr("News ID required");
+            $id = (int) ($_GET['id'] ?? $input['id'] ?? 0);
+            if (!$id)
+                jsonErr("News ID required");
 
             $db->prepare("DELETE FROM grabbed_news WHERE id = :id")->execute(['id' => $id]);
             jsonOut(['success' => true, 'message' => "News #{$id} deleted"]);
@@ -627,7 +646,8 @@ try {
 
             if ($action === 'test-openai') {
                 $key = $input['openai_api_key'] ?? Database::getSetting('openai_api_key');
-                if (empty($key)) jsonErr("OpenAI API açarı boşdur.");
+                if (empty($key))
+                    jsonErr("OpenAI API açarı boşdur.");
 
                 $model = $input['openai_model'] ?? Database::getSetting('openai_model', 'gpt-4o-mini');
 
@@ -674,7 +694,7 @@ try {
             $settingsData = $input['settings'] ?? $input;
             foreach ($settingsData as $k => $v) {
                 if (is_scalar($v) && !in_array($k, ['action', 'endpoint'])) {
-                    Database::setSetting($k, (string)$v);
+                    Database::setSetting($k, (string) $v);
                 }
             }
 

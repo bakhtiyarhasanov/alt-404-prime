@@ -51,14 +51,46 @@ if ($method === 'GET') {
         echo json_encode($article);
     } else {
         // Return list with creator details
-        $stmt = $db->query('
+        $where = [];
+        $params = [];
+
+        $startDate = $_GET['start_date'] ?? $_GET['from_date'] ?? $_GET['from'] ?? null;
+        $endDate = $_GET['end_date'] ?? $_GET['to_date'] ?? $_GET['to'] ?? null;
+        $search = trim($_GET['search'] ?? $_GET['q'] ?? '');
+        $category = $_GET['category'] ?? null;
+
+        if (!empty($startDate)) {
+            $where[] = 'a.created_at >= :start_date';
+            $params['start_date'] = strlen($startDate) === 10 ? $startDate . ' 00:00:00' : $startDate;
+        }
+
+        if (!empty($endDate)) {
+            $where[] = 'a.created_at <= :end_date';
+            $params['end_date'] = strlen($endDate) === 10 ? $endDate . ' 23:59:59' : $endDate;
+        }
+
+        if ($search !== '') {
+            $where[] = '(a.title LIKE :search OR a.slug LIKE :search)';
+            $params['search'] = '%' . $search . '%';
+        }
+
+        if (!empty($category) && $category !== 'all') {
+            $where[] = 'a.category = :category';
+            $params['category'] = $category;
+        }
+
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $stmt = $db->prepare("
             SELECT a.id, a.title, a.slug, a.excerpt, a.category, a.image_url, a.tags, a.featured, a.published, a.updating, a.newsletter, a.code, a.reading_time, a.start_time, a.end_time, a.views, a.created_at, a.updated_at, a.created_by, u.name as creator_name, COUNT(v.id) as version_count
             FROM articles a
             LEFT JOIN admin_users u ON a.created_by = u.id
             LEFT JOIN article_versions v ON a.id = v.article_id
+            {$whereClause}
             GROUP BY a.id
             ORDER BY a.created_at DESC
-        ');
+        ");
+        $stmt->execute($params);
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
             $row['tags'] = json_decode($row['tags'] ?? '[]', true) ?: [];
