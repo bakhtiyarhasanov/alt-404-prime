@@ -1,4 +1,10 @@
+# Disable directory listings
+Options -Indexes
+
 RewriteEngine On
+
+# Disallow access to hidden files and directories (starting with a dot)
+RewriteRule (^|/)\.(?!well-known) - [F,L]
 
 # Don't rewrite existing files and directories
 RewriteCond %{REQUEST_FILENAME} !-f
