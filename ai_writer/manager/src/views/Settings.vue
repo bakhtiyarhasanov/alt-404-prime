@@ -62,78 +62,39 @@
         <div class="form-row-2">
           <div class="form-group">
             <div class="label-row-between">
-              <label class="form-label mb-0">Model Seçimi</label>
-              <span v-if="isReasoningModel" class="label-badge badge-cyan" title="o-seriyası düşüncə modeli">Reasoning</span>
+              <label class="form-label mb-0">
+                <span>Model Seçimi</span>
+                <span v-if="isReasoningModel" class="label-badge badge-cyan" title="o-seriyası düşüncə modeli">Reasoning</span>
+              </label>
+              <button
+                type="button"
+                @click="loadOpenAiModels(false)"
+                :disabled="loadingModels || !form.openai_api_key"
+                class="btn-text-action"
+                title="OpenAI API-dən modelləri yenilə"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+                {{ loadingModels ? 'Yüklənir...' : 'Modelləri yenilə' }}
+              </button>
             </div>
 
-            <select v-model="selectedModel" @change="onModelSelectChange" class="form-select">
-              <!-- GPT-5.6 Seriyası (Sol, Terra, Luna) -->
-              <optgroup label="🌟 GPT-5.6 Seriyası (Sol, Terra, Luna)">
-                <option value="gpt-5.6-sol">gpt-5.6-sol (GPT-5.6 Sol: Flaqman 1M kontekst, dərin analiz və yüksək dəqiqlik)</option>
-                <option value="gpt-5.6">gpt-5.6 (GPT-5.6 Sol üçün birbaşa alias)</option>
-                <option value="gpt-5.6-terra">gpt-5.6-terra (GPT-5.6 Terra: Balanslı orta səviyyə)</option>
-                <option value="gpt-5.6-luna">gpt-5.6-luna (GPT-5.6 Luna: Ultra-sürətli və qənaətli)</option>
-              </optgroup>
-
-              <!-- Tövsiyə Olunan & Ən Populyar Modellər -->
-              <optgroup label="⭐ Tövsiyə Olunan & Populyar Modellər">
-                <option value="gpt-4o-mini">gpt-4o-mini (Tövsiyə olunur: sürətli, qənaətli və yüksək keyfiyyət)</option>
-                <option value="gpt-4o">gpt-4o (Flaqman: maksimum dəqiqlik və zəngin üslub)</option>
-                <option value="chatgpt-4o-latest">chatgpt-4o-latest (ChatGPT son versiya dinamik model)</option>
-                <option value="o3-mini">o3-mini (Ən son sürətli reasoning / mühakimə modeli)</option>
-              </optgroup>
-
-              <!-- GPT-4o və GPT-4.5 Seriyası -->
-              <optgroup label="🚀 GPT-4o və GPT-4.5 Seriyası">
-                <option value="gpt-4.5-preview">gpt-4.5-preview (GPT-4.5 Preview - ən böyük intellektual model)</option>
-                <option value="gpt-4o-2024-11-20">gpt-4o-2024-11-20 (GPT-4o son sabit snapshot)</option>
-                <option value="gpt-4o-2024-08-06">gpt-4o-2024-08-06 (GPT-4o strukturlaşdırılmış çıxış)</option>
-                <option value="gpt-4o-2024-05-13">gpt-4o-2024-05-13 (GPT-4o ilkin buraxılış)</option>
-                <option value="gpt-4o-mini-2024-07-18">gpt-4o-mini-2024-07-18 (GPT-4o Mini sabit snapshot)</option>
-              </optgroup>
-
-              <!-- OpenAI o1 və o3 Reasoning Modelləri -->
-              <optgroup label="🧠 OpenAI Düşüncə və Reasoning (o-Seriyası)">
-                <option value="o3-mini">o3-mini (Yüksək sürətli dərrakəli mühakimə)</option>
-                <option value="o1">o1 (Tam dərin məntiq və mühakimə flaqmanı)</option>
-                <option value="o1-2024-12-17">o1-2024-12-17 (o1 rəsmi sabit versiya)</option>
-                <option value="o1-mini">o1-mini (Sürətli düşünmə və analiz modeli)</option>
-                <option value="o1-mini-2024-09-12">o1-mini-2024-09-12 (o1-mini snapshot)</option>
-                <option value="o1-preview">o1-preview (İlk mühakimə preview modeli)</option>
-                <option value="o1-preview-2024-09-12">o1-preview-2024-09-12 (o1-preview snapshot)</option>
-              </optgroup>
-
-              <!-- GPT-4 Turbo Seriyası -->
-              <optgroup label="⚡ GPT-4 Turbo Seriyası">
-                <option value="gpt-4-turbo">gpt-4-turbo (128k kontekst, son bilik bazası)</option>
-                <option value="gpt-4-turbo-2024-04-09">gpt-4-turbo-2024-04-09 (GPT-4 Turbo rəsmi buraxılış)</option>
-                <option value="gpt-4-turbo-preview">gpt-4-turbo-preview (Turbo ön baxış)</option>
-                <option value="gpt-4-0125-preview">gpt-4-0125-preview (Turbo 0125 snapshot)</option>
-                <option value="gpt-4-1106-preview">gpt-4-1106-preview (Turbo 1106 snapshot)</option>
-              </optgroup>
-
-              <!-- Klassik GPT-4 Seriyası -->
-              <optgroup label="🏛️ Klassik GPT-4 Seriyası">
-                <option value="gpt-4">gpt-4 (Klassik baza modeli)</option>
-                <option value="gpt-4-0613">gpt-4-0613 (GPT-4 snapshot 0613)</option>
-                <option value="gpt-4-0314">gpt-4-0314 (İlk GPT-4 snapshot)</option>
-                <option value="gpt-4-32k">gpt-4-32k (32k genişləndirilmiş kontekst)</option>
-                <option value="gpt-4-32k-0613">gpt-4-32k-0613 (32k snapshot 0613)</option>
-              </optgroup>
-
-              <!-- GPT-3.5 Turbo Seriyası -->
-              <optgroup label="📦 GPT-3.5 Turbo Seriyası">
-                <option value="gpt-3.5-turbo">gpt-3.5-turbo (Standart GPT-3.5 Turbo)</option>
-                <option value="gpt-3.5-turbo-0125">gpt-3.5-turbo-0125 (GPT-3.5 ən son versiya)</option>
-                <option value="gpt-3.5-turbo-1106">gpt-3.5-turbo-1106 (16k pəncərə)</option>
-                <option value="gpt-3.5-turbo-16k">gpt-3.5-turbo-16k (16k böyük kontekst)</option>
-                <option value="gpt-3.5-turbo-0613">gpt-3.5-turbo-0613 (Klassik snapshot)</option>
-              </optgroup>
-
-              <!-- Digər / Fərdi Model -->
-              <optgroup label="⚙️ Digər">
-                <option value="__custom__">✏️ Fərdi model adı daxil et...</option>
-              </optgroup>
+            <select v-model="selectedModel" @change="onModelSelectChange" :disabled="loadingModels" class="form-select">
+              <option v-if="loadingModels && !availableModels.length" :value="form.openai_model">
+                Yüklənir... ({{ form.openai_model }})
+              </option>
+              <option
+                v-if="!loadingModels && form.openai_model && !availableModels.includes(form.openai_model)"
+                :value="form.openai_model"
+              >
+                {{ form.openai_model }}
+              </option>
+              <option v-for="m in availableModels" :key="m" :value="m">
+                {{ m }}
+              </option>
+              <option value="__custom__">✏️ Fərdi model adı daxil et...</option>
             </select>
 
             <!-- Custom Model Textbox if chosen -->
@@ -350,49 +311,14 @@ mənbə 2 link şəklində
 mənbə 3 link şəklində və s.
 İstinad etdiyin mənbə sayı 5-dən çox olmasın. Link uzun olduqda ixtisar et və … nöqtə ilə tamamla. Məsələn, [ https://www.kaldata.com/it-%d0%bd%d0%be%](https://www.kaldata.com/it-%25d0%25bd%25d0%25be%25)…`
 
-const PREDEFINED_MODELS = [
-  'gpt-5.6-sol',
-  'gpt-5.6',
-  'gpt-5.6-terra',
-  'gpt-5.6-luna',
-  'gpt-4o-mini',
-  'gpt-4o',
-  'chatgpt-4o-latest',
-  'gpt-4.5-preview',
-  'gpt-4o-2024-11-20',
-  'gpt-4o-2024-08-06',
-  'gpt-4o-2024-05-13',
-  'gpt-4o-mini-2024-07-18',
-  'o3-mini',
-  'o1',
-  'o1-2024-12-17',
-  'o1-mini',
-  'o1-mini-2024-09-12',
-  'o1-preview',
-  'o1-preview-2024-09-12',
-  'gpt-4-turbo',
-  'gpt-4-turbo-2024-04-09',
-  'gpt-4-turbo-preview',
-  'gpt-4-0125-preview',
-  'gpt-4-1106-preview',
-  'gpt-4',
-  'gpt-4-0613',
-  'gpt-4-0314',
-  'gpt-4-32k',
-  'gpt-4-32k-0613',
-  'gpt-3.5-turbo',
-  'gpt-3.5-turbo-0125',
-  'gpt-3.5-turbo-1106',
-  'gpt-3.5-turbo-16k',
-  'gpt-3.5-turbo-0613'
-]
-
 export default {
   name: 'Settings',
   setup() {
     const store = useAiWriterStore()
     const testingAi = ref(false)
     const testingDb = ref(false)
+    const loadingModels = ref(false)
+    const availableModels = ref([])
     const aiTestMsg = ref('')
     const aiTestSuccess = ref(false)
     const dbStatus = ref({ ai_db: false, web_db: false, ai_err: '', web_err: '' })
@@ -415,17 +341,27 @@ export default {
     const isReasoningModel = computed(() => /^(o1|o3)/i.test(form.openai_model))
 
     const syncModelFromForm = () => {
-      const current = (form.openai_model || '').trim()
-      if (!current) {
-        selectedModel.value = 'gpt-4o-mini'
-        form.openai_model = 'gpt-4o-mini'
-        customModelName.value = ''
-      } else if (PREDEFINED_MODELS.includes(current)) {
-        selectedModel.value = current
-        customModelName.value = ''
-      } else {
-        selectedModel.value = '__custom__'
-        customModelName.value = current
+      const current = (form.openai_model || '').trim() || 'gpt-4o-mini'
+      form.openai_model = current
+      selectedModel.value = current
+      customModelName.value = ''
+    }
+
+    const loadOpenAiModels = async (silent = true) => {
+      if (!form.openai_api_key) return
+      loadingModels.value = true
+      try {
+        const models = await store.fetchOpenAiModels(form.openai_api_key)
+        availableModels.value = models
+        if (!silent) {
+          store.showToast(`${models.length} OpenAI modeli yükləndi`, 'success')
+        }
+      } catch (err) {
+        if (!silent) {
+          store.showToast('Modelləri yükləmək mümkün olmadı: ' + err.message, 'error')
+        }
+      } finally {
+        loadingModels.value = false
       }
     }
 
@@ -442,8 +378,11 @@ export default {
     }
 
     const cancelCustomModel = () => {
-      selectedModel.value = 'gpt-4o-mini'
-      form.openai_model = 'gpt-4o-mini'
+      const fallback = availableModels.value.includes('gpt-4o-mini')
+        ? 'gpt-4o-mini'
+        : (availableModels.value[0] || 'gpt-4o-mini')
+      selectedModel.value = fallback
+      form.openai_model = fallback
       customModelName.value = ''
     }
 
@@ -457,6 +396,7 @@ export default {
         })
       }
       syncModelFromForm()
+      loadOpenAiModels(true)
       testDatabaseConnections()
     })
 
@@ -478,6 +418,9 @@ export default {
       try {
         const modelToTest = form.openai_model || 'gpt-4o-mini'
         const res = await store.testOpenAI(form.openai_api_key, modelToTest)
+        if (Array.isArray(res.models)) {
+          availableModels.value = res.models
+        }
         aiTestSuccess.value = true
         aiTestMsg.value = res.message || 'OpenAI API ilə əlaqə uğurludur!'
       } catch (err) {
@@ -502,6 +445,9 @@ export default {
       form,
       selectedModel,
       customModelName,
+      availableModels,
+      loadingModels,
+      loadOpenAiModels,
       isCustomModel,
       isReasoningModel,
       onModelSelectChange,

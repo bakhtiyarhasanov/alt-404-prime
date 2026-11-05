@@ -398,6 +398,17 @@ export const useAiWriterStore = defineStore('aiWriter', {
       }
     },
 
+    async fetchOpenAiModels(key) {
+      try {
+        const res = await api.post('?endpoint=settings&action=models', {
+          openai_api_key: key
+        })
+        return res.data?.models || []
+      } catch (e) {
+        throw new Error(e.response?.data?.error || e.message)
+      }
+    },
+
     async testDatabase() {
       try {
         const res = await api.post('?endpoint=settings&action=test-db')

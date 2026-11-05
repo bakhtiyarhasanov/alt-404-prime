@@ -636,40 +636,54 @@ try {
     // 4. SETTINGS ENDPOINT
     // ------------------------------------------------------------------------
     if ($endpoint === 'settings') {
+        $action = $_GET['action'] ?? $input['action'] ?? '';
+
+        if ($action === 'models' || ($method === 'POST' && $action === 'test-openai')) {
+            $key = trim($input['openai_api_key'] ?? $_GET['openai_api_key'] ?? Database::getSetting('openai_api_key'));
+            if (empty($key))
+                jsonErr("OpenAI API açarı boşdur.");
+
+            $ch = curl_init('https://api.openai.com/v1/models');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $key],
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $res = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err = curl_error($ch);
+
+            if ($code === 200) {
+                $json = json_decode($res, true);
+                $models = [];
+                foreach (($json['data'] ?? []) as $item) {
+                    if (!empty($item['id']) && is_string($item['id'])) {
+                        $models[] = $item['id'];
+                    }
+                }
+                sort($models, SORT_NATURAL | SORT_FLAG_CASE);
+                $models = array_values(array_unique($models));
+
+                jsonOut([
+                    'success' => true,
+                    'models' => $models,
+                    'message' => "OpenAI API açarı aktivdir və əlaqə quruldu! (" . count($models) . " model)"
+                ]);
+            } else {
+                $json = json_decode($res, true);
+                $msg = $json['error']['message'] ?? ($err ?: "HTTP {$code}");
+                jsonErr("OpenAI Xətası: {$msg}");
+            }
+        }
+
         if ($method === 'GET') {
             $all = Database::getAllSettings();
             jsonOut(['success' => true, 'settings' => $all]);
         }
 
         if ($method === 'POST') {
-            $action = $_GET['action'] ?? $input['action'] ?? 'update';
-
-            if ($action === 'test-openai') {
-                $key = $input['openai_api_key'] ?? Database::getSetting('openai_api_key');
-                if (empty($key))
-                    jsonErr("OpenAI API açarı boşdur.");
-
-                $model = $input['openai_model'] ?? Database::getSetting('openai_model', 'gpt-4o-mini');
-
-                $ch = curl_init('https://api.openai.com/v1/models');
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $key],
-                    CURLOPT_TIMEOUT => 10,
-                    CURLOPT_SSL_VERIFYPEER => false,
-                ]);
-                $res = curl_exec($ch);
-                $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $err = curl_error($ch);
-
-                if ($code === 200) {
-                    jsonOut(['success' => true, 'message' => "OpenAI API açarı aktivdir və əlaqə quruldu!"]);
-                } else {
-                    $json = json_decode($res, true);
-                    $msg = $json['error']['message'] ?? ($err ?: "HTTP {$code}");
-                    jsonErr("OpenAI Xətası: {$msg}");
-                }
-            }
+            $action = $action ?: 'update';
 
             if ($action === 'test-db') {
                 $status = ['ai_db' => false, 'web_db' => false, 'ai_err' => '', 'web_err' => ''];
